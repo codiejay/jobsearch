@@ -33,6 +33,7 @@ export async function sendMail(msg: Mail.Options, { dryRun }: { dryRun: boolean 
         secure: Number(process.env.SMTP_PORT || 465) === 465,
         auth: creds(),
       });
-  const info = await transport.sendMail(msg);
+  // jsonTransport puts the built message on info.message; the types omit it.
+  const info = (await transport.sendMail(msg)) as { messageId?: string; message?: string };
   return { messageId: String(info.messageId || ""), message: dryRun ? JSON.parse(String(info.message)) : null };
 }

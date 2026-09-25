@@ -3,7 +3,7 @@ import Meter from "./Meter";
 import { REGION_NAME, ago, appliedAt, band, calm, heat, place, stage, stamp, type Job } from "../lib/ui";
 
 // Remote roles read "Remote, EU"; on-site ones show the city.
-function where(j: Job) {
+export function where(j: Job) {
   if (j.mode === "remote") {
     const r = REGION_NAME[j.region];
     return <span className="rm">{r ? `Remote, ${r}` : "Remote"}</span>;

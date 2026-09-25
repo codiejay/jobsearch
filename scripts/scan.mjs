@@ -527,9 +527,10 @@ async function draft(t0) {
 // awayMinutes, screen unlocked, Chrome's extension checked in in the last
 // 3 minutes, not sharing the screen, not muted), the extension shows it
 // on screen and the phone stays quiet. Otherwise the phone gets the ping.
-// A notice not opened within 45 minutes goes to the phone as well, in
-// case the person walked away just after it arrived. Off a Mac the desk
-// checks always say away, so everything goes to the phone.
+// A notice not opened within 45 minutes goes to the phone too, in case
+// the person walked away just after it arrived. Only when they are away:
+// at the desk it is still on screen. Off a Mac the desk checks always say
+// away, so everything goes to the phone.
 const AWAY_S = config.awayMinutes * 60;
 const STALE_DESK = 45 * 6e4;
 async function alert(worth) {
@@ -548,7 +549,7 @@ async function alert(worth) {
   const stale = (await store.listJobs()).filter(
     (j) => j.deskAt && !j.deskSeenAt && !j.phonedAt && Date.now() - j.deskAt > STALE_DESK && (j.status === "drafted" || j.status === "new")
   );
-  const phone = here ? stale : [...worth, ...stale];
+  const phone = here ? [] : [...worth, ...stale];
   const onDesk = here ? worth : [];
 
   for (const j of onDesk) {
@@ -560,7 +561,8 @@ async function alert(worth) {
     if (x) await store.putJob({ ...x, phonedAt: Date.now() });
   }
   const why = `idle ${Math.round(idle)}s, locked ${await desk.screenLocked()}, extension ${p ? Math.round((Date.now() - p.at) / 1000) + "s ago" : "never"}, sharing ${!!p?.sharing}, muted ${p?.holdUntil > Date.now()}`;
-  if (worth.length || stale.length) console.log(`${here ? "at the desk" : "away"} (${why}): ${onDesk.length} on screen, ${phone.length} to the phone`);
+  if (worth.length || stale.length)
+    console.log(`${here ? "at the desk" : "away"} (${why}): ${onDesk.length} on screen, ${phone.length} to the phone, ${stale.length} unseen over 45 min`);
   for (const m of runPings(phone)) await ping(m);
 }
 

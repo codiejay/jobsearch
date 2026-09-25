@@ -200,3 +200,24 @@ export type Detail = {
 };
 
 export type Person = { name: string; firstName: string };
+
+/* Focus: the untouched roles one at a time, best fit first. Each answer
+   saves through the status route as it's given, so closing loses nothing.
+   The queue is fixed when it starts, so saves never reshuffle it. */
+export type FocusRun = {
+  order: string[];
+  i: number;
+  // put off once: sent to the end. Put off twice: left for later.
+  deferred: string[];
+  // what happened to each role this run, and when
+  dec: Record<string, { k: "applied" | "skipped" | "later"; at: number }>;
+};
+
+// Ready to apply and Write yourself roles nobody has acted on, best first.
+export function focusQueue(jobs: Job[]) {
+  return jobs
+    .filter((j) => untouched(j) && (j.verdict === "send" || j.verdict === "you"))
+    .sort((a, b) => heat(b) - heat(a) || b.postedAt - a.postedAt)
+    .map((j) => j.id);
+}
+

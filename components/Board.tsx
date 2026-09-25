@@ -1,10 +1,11 @@
 import Head from "next/head";
 import { Fragment, useCallback, useState } from "react";
 import Drawer from "./Drawer";
+import Focus from "./Focus";
 import Posted from "./Posted";
 import Row from "./Row";
 import Tabs from "./Tabs";
-import { OUT, VIEWS, ago, appliedAt, heat, useMounted, type Job, type Person } from "../lib/ui";
+import { OUT, VIEWS, ago, appliedAt, focusQueue, heat, useMounted, type FocusRun, type Job, type Person } from "../lib/ui";
 
 // now: the server's clock, so "5h ago" renders the same on both sides.
 export type Props = { jobs: Job[]; scannedAt: number | null; now: number; person: Person };
@@ -22,6 +23,11 @@ export default function Board({ jobs: initial, scannedAt, now, person }: Props) 
   const [openId, setOpenId] = useState<string | null>(null);
   const close = useCallback(() => setOpenId(null), []);
   const mounted = useMounted();
+  // the focus run: kept while the page is open, so Exit then Resume picks up
+  const [run, setRun] = useState<FocusRun | null>(null);
+  const [focusing, setFocusing] = useState(false);
+  const queue = focusQueue(jobs);
+  const midway = !!run && run.i > 0 && run.i < run.order.length;
 
   const shown = jobs.filter((j) => {
     if (!current.test(j)) return false;
@@ -127,6 +133,19 @@ export default function Board({ jobs: initial, scannedAt, now, person }: Props) 
               }}
             />
             <div className="tools">
+              {(midway || queue.length > 0) && (
+                <button
+                  className="focus"
+                  onClick={() => {
+                    if (!midway) setRun({ order: queue, i: 0, deferred: [], dec: {} });
+                    setOpenId(null);
+                    setFocusing(true);
+                  }}
+                >
+                  {midway ? "Resume focus" : "Start focus"}
+                  <span className="num">{midway ? `${run!.i + 1} of ${run!.order.length}` : queue.length}</span>
+                </button>
+              )}
               {picked.size > 0 && (
                 <div className="bulk">
                   <span>{picked.size} picked</span>
@@ -218,6 +237,22 @@ export default function Board({ jobs: initial, scannedAt, now, person }: Props) 
         <Posted jobs={jobs} now={now} />
       </main>
 
+      {focusing && run && (
+        <Focus
+          jobs={jobs}
+          run={run}
+          setRun={setRun}
+          now={now}
+          onStatus={(id, st) => setStatus(st, id)}
+          onSent={(id, at) =>
+            setJobs((js) =>
+              js.map((x) => (x.id === id ? { ...x, status: "applied", statusAt: at, appliedAt: x.appliedAt ?? at } : x))
+            )
+          }
+          onClose={() => setFocusing(false)}
+        />
+      )}
+
       <style jsx global>{`
         .js main {
           max-width: 1180px;
@@ -299,6 +334,26 @@ export default function Board({ jobs: initial, scannedAt, now, person }: Props) 
         .js button.ghost {
           background: none;
           color: var(--muted);
+        }
+        .js button.focus {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          height: 30px;
+          padding: 0 11px;
+          border: 0;
+          background: var(--text);
+          color: var(--bg);
+          font-weight: 500;
+          white-space: nowrap;
+        }
+        .js button.focus:hover {
+          background: #fff;
+        }
+        .js button.focus .num {
+          font-size: 11.5px;
+          font-weight: 400;
+          color: #55544f;
         }
         .js button.icon {
           width: 30px;
