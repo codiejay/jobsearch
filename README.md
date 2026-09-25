@@ -112,4 +112,4 @@ The defaults are for a frontend or product engineer who lives outside the EU and
 
 ## Privacy
 
-Everything runs on your machine. The CV and letters go to Anthropic to write the brief, and nowhere else. A phone ping carries the title, company, location and fit only. The board answers only on localhost unless you set a password.
+Everything runs on your machine. The CV and letters go to Anthropic to write the brief, and nowhere else. A phone ping carries the title, company, location and fit only. The board answers only on localhost unless you set a password. If you host it and run `jobsearch sync`, your CV, profile and voice are copied to your own Redis so the hosted board can draft too.

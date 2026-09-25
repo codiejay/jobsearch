@@ -48,6 +48,9 @@ export type Brief = {
 // score only orders the list; the page never shows it as a number, since
 // it says how fresh and takeable a role is, not how well you fit it.
 export const heat = (j: Job) => j.fit ?? j.score;
+// Briefed roles first, then by fit or score, then newest. A role with no
+// brief must never sit above one that has a fit, whatever its rule score.
+export const rank = (a: Job, b: Job) => Number(b.fit != null) - Number(a.fit != null) || heat(b) - heat(a) || b.postedAt - a.postedAt;
 
 export type Status = "new" | "drafted" | "applied" | "interview" | "offer" | "rejected" | "skipped";
 
@@ -217,7 +220,7 @@ export type FocusRun = {
 export function focusQueue(jobs: Job[]) {
   return jobs
     .filter((j) => untouched(j) && (j.verdict === "send" || j.verdict === "you"))
-    .sort((a, b) => heat(b) - heat(a) || b.postedAt - a.postedAt)
+    .sort(rank)
     .map((j) => j.id);
 }
 

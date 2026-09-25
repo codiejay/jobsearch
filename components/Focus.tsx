@@ -351,7 +351,7 @@ export default function Focus({
 
         {done && (
           <div className="fbody">
-            <h3 className="fbig">That's the whole queue.</h3>
+            <h3 className="fbig">{"That's the whole queue."}</h3>
             <p className="fwhy">You went through {total} {total === 1 ? "role" : "roles"}.</p>
             <div className="fstats">
               <div>

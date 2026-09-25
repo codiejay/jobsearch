@@ -14,9 +14,12 @@ import { Redis } from "@upstash/redis";
      js:jobs     hash, field = role id, value = the role as JSON
      js:meta     hash, scannedAt
      js:presence string, what the extension last said (see Presence)
-   One field per role, so two writers only clash on the same role. The
-   CV, profile and voice are files on the machine that runs the scan and
-   the drafts, and are never stored in Redis. */
+   One field per role, so two writers only clash on the same role.
+
+   The CV, profile and voice are files in data/ on the machine that runs
+   the scan. A hosted copy has no disk, so `jobsearch sync` can push those
+   files to Redis (js:cv, js:profile, js:voice, js:cvpdf) and the hosted
+   board reads them from there. Disk wins when both exist. */
 
 export type Job = {
   id: string;
@@ -32,7 +35,7 @@ export type Profile = Record<string, string | number | boolean>;
 
 export const DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DIR, "board.json");
-const K = { jobs: "js:jobs", meta: "js:meta", presence: "js:presence" };
+const K = { jobs: "js:jobs", meta: "js:meta", presence: "js:presence", cv: "js:cv", profile: "js:profile", voice: "js:voice", cvpdf: "js:cvpdf" };
 
 let client: Redis | null | undefined;
 function redis(): Redis | null {
@@ -64,18 +67,55 @@ async function writeFile(data: { scannedAt: number | null; jobs: Job[] }) {
   await fs.writeFile(FILE, JSON.stringify(data, null, 1));
 }
 
-// ---------- the person's files, always on disk ----------
+// ---------- the person's files: disk first, then Redis ----------
 
-async function dataFile(name: string, hint: string): Promise<string> {
+async function dataFile(name: string, key: string, hint: string): Promise<string> {
   const text = await fs.readFile(path.join(DIR, name), "utf8").catch(() => null);
-  if (!text?.trim()) throw new Error(`data/${name} is missing. ${hint}`);
-  return text;
+  if (text?.trim()) return text;
+  const r = redis();
+  const stored = r ? await r.get<string>(key) : null;
+  if (stored?.trim()) return stored;
+  throw new Error(`data/${name} is missing. ${hint}${r ? " Hosted: run jobsearch sync on the machine that has it." : ""}`);
 }
 
-export const getCv = () => dataFile("cv.txt", "Paste your CV as plain text, or run: jobsearch init");
-export const getVoice = () => dataFile("voice.md", "Copy data/examples/voice.md and make it yours, or run: jobsearch init");
+export const getCv = () => dataFile("cv.txt", K.cv, "Paste your CV as plain text, or run: jobsearch init.");
+export const getVoice = () => dataFile("voice.md", K.voice, "Copy data/examples/voice.md and make it yours, or run: jobsearch init.");
 export async function getProfile(): Promise<Profile> {
-  return JSON.parse(await dataFile("profile.json", "Copy data/examples/profile.json and fill it in, or run: jobsearch init"));
+  return JSON.parse(await dataFile("profile.json", K.profile, "Copy data/examples/profile.json and fill it in, or run: jobsearch init."));
+}
+
+// The CV PDF as bytes: data/<cvFile> on disk, else js:cvpdf (base64).
+export async function getCvPdf(): Promise<{ name: string; bytes: Buffer } | null> {
+  let name = "cv.pdf";
+  try {
+    name = path.basename(String((await getProfile()).cvFile || name));
+  } catch {}
+  const disk = await fs.readFile(path.join(DIR, name)).catch(() => null);
+  if (disk) return { name, bytes: disk };
+  const r = redis();
+  const b64 = r ? await r.get<string>(K.cvpdf) : null;
+  return b64 ? { name, bytes: Buffer.from(b64, "base64") } : null;
+}
+
+/* Pushes the person's files to Redis for a hosted board. Only what
+   exists on disk is written; nothing is deleted. Returns what was sent. */
+export async function syncPersonToRedis(): Promise<string[]> {
+  const r = redis();
+  if (!r) throw new Error("No Redis. Set JOBSEARCH_STORE=redis and the Upstash keys in .env.local.");
+  const sent: string[] = [];
+  for (const [name, key] of [["cv.txt", K.cv], ["profile.json", K.profile], ["voice.md", K.voice]] as const) {
+    const text = await fs.readFile(path.join(DIR, name), "utf8").catch(() => null);
+    if (text?.trim()) {
+      await r.set(key, text);
+      sent.push(name);
+    }
+  }
+  const pdf = await getCvPdf();
+  if (pdf && (await fs.stat(path.join(DIR, pdf.name)).catch(() => null))) {
+    await r.set(K.cvpdf, pdf.bytes.toString("base64"));
+    sent.push(pdf.name);
+  }
+  return sent;
 }
 
 // ---------- reads ----------

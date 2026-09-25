@@ -100,8 +100,13 @@ The board only answers on localhost until BOARD_PASSWORD is set. To reach
 it from a phone, deploy this folder to Vercel or any Node host, set
 BOARD_PASSWORD, BOARD_KEY (for the extension), JOBSEARCH_STORE=redis and
 the Upstash keys, and set BOARD_URL in .env.local on the Mac so pings
-open it. The Mac still runs the scan; the host only shows the board. The
-CV and voice never leave the Mac.
+open it. The Mac still runs the scan; the host shows the board and can
+write briefs for roles sent in from the phone. For that it needs the
+person's files: run `node bin/jobsearch.mjs sync` on the Mac once, and
+again whenever cv.txt, profile.json, voice.md or cv.pdf change. That
+copies them to Redis. Without sync, the hosted board shows roles but
+cannot draft or send. vercel.json already gives the API routes 300
+seconds, which a brief needs.
 
 ## When something breaks
 

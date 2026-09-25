@@ -7,6 +7,7 @@
 //   jobsearch start             run the built board (after: npm run build)
 //   jobsearch scan [...]        one scan now; flags pass through to scan.mjs
 //   jobsearch ping --test       one test ping to the phone
+//   jobsearch sync              push cv, profile, voice and the PDF to Redis (hosted board)
 //   jobsearch schedule install  run the scan every hour (macOS launchd)
 //   jobsearch schedule remove
 //   jobsearch schedule status
@@ -36,7 +37,7 @@ const nextBin = path.join(ROOT, "node_modules", ".bin", "next");
 
 const commands = {
   async help() {
-    console.log(readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 12).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
+    console.log(readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 13).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
   },
 
   async init() {
@@ -137,6 +138,18 @@ const commands = {
 
   async ping() {
     process.exitCode = await run("scripts/ping.mjs", rest.length ? rest : ["--test"]);
+  },
+
+  async sync() {
+    await import("../scripts/ts-hooks.mjs");
+    const store = await import("../lib/store.ts");
+    try {
+      const sent = await store.syncPersonToRedis();
+      console.log(sent.length ? `sent to Redis: ${sent.join(", ")}` : "nothing to send: data/ is empty");
+    } catch (e) {
+      console.error(e.message);
+      process.exitCode = 1;
+    }
   },
 
   async schedule() {

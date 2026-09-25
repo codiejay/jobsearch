@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   busy.add(job.id);
   let sent;
   try {
-    sent = await sendMail(buildMessage(profile, { to, subject, body: text }), { dryRun: !!dryRun });
+    sent = await sendMail(await buildMessage(profile, { to, subject, body: text }), { dryRun: !!dryRun });
   } catch (e) {
     busy.delete(job.id);
     return res.status(502).json({ error: (e as Error).message });

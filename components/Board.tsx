@@ -5,7 +5,7 @@ import Focus from "./Focus";
 import Posted from "./Posted";
 import Row from "./Row";
 import Tabs from "./Tabs";
-import { OUT, VIEWS, ago, appliedAt, focusQueue, heat, useMounted, type FocusRun, type Job, type Person } from "../lib/ui";
+import { OUT, VIEWS, ago, appliedAt, focusQueue, useMounted, type FocusRun, type Job, type Person, rank } from "../lib/ui";
 
 // now: the server's clock, so "5h ago" renders the same on both sides.
 export type Props = { jobs: Job[]; scannedAt: number | null; now: number; person: Person };
@@ -34,7 +34,7 @@ export default function Board({ jobs: initial, scannedAt, now, person }: Props) 
     if (!query) return true;
     const q = query.toLowerCase();
     return `${j.title} ${j.company} ${j.location} ${j.source}`.toLowerCase().includes(q);
-  }).sort((a, b) => heat(b) - heat(a) || b.postedAt - a.postedAt);
+  }).sort(rank);
 
   const fresh = jobs.filter((j) => now - j.postedAt < 36e5 * 6).length;
   const remote = jobs.filter((j) => j.mode === "remote").length;

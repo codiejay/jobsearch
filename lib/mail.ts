@@ -1,7 +1,6 @@
-import path from "node:path";
 import nodemailer from "nodemailer";
 import type Mail from "nodemailer/lib/mailer";
-import { DIR, type Profile } from "./store";
+import { getCvPdf, type Profile } from "./store";
 
 /* Sends one application email over SMTP with the CV PDF attached. Gmail
    keeps a copy in Sent. dryRun builds the message and sends nothing. */
@@ -13,14 +12,15 @@ function creds() {
   return { user, pass };
 }
 
-export function buildMessage(p: Profile, { to, subject, body }: { to: string; subject: string; body: string }): Mail.Options {
-  const cv = String(p.cvFile || "cv.pdf");
+export async function buildMessage(p: Profile, { to, subject, body }: { to: string; subject: string; body: string }): Promise<Mail.Options> {
+  const pdf = await getCvPdf();
+  if (!pdf) throw new Error("No CV PDF. Put it at data/cv.pdf (hosted: run jobsearch sync).");
   return {
     from: `${p.name} <${process.env.SMTP_USER || ""}>`,
     to,
     subject,
     text: body,
-    attachments: [{ filename: `${p.name} CV.pdf`, path: path.join(DIR, cv) }],
+    attachments: [{ filename: `${p.name} CV.pdf`, content: pdf.bytes }],
   };
 }
 

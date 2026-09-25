@@ -8,7 +8,7 @@ export default function Meter({ value, ai }: { value: number; ai: boolean }) {
       <span className="track" aria-hidden>
         {ai && <span className={`fill ${tone}`} style={{ width: `${pct}%` }} />}
       </span>
-      <span className={`v ${ai ? "ai" : "none"}`}>{ai ? value : "new"}</span>
+      <span className={`v ${ai ? "ai" : "none"}`}>{ai ? value : "no brief"}</span>
       <style jsx>{`
         .meter {
           display: inline-flex;
