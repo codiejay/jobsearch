@@ -1,0 +1,21 @@
+{
+  "name": "Ada Okafor",
+  "firstName": "Ada",
+  "lastName": "Okafor",
+  "email": "ada@example.com",
+  "phone": "",
+  "linkedin": "https://linkedin.com/in/adaokafor",
+  "github": "https://github.com/adaokafor",
+  "website": "https://adaokafor.dev",
+  "x": "",
+  "location": "Lagos, Nigeria",
+  "timezone": "West Africa Time (UTC+1)",
+  "homeCountry": "Nigeria",
+  "relocation": "Can relocate to Portugal. Would need a work visa elsewhere in the EU.",
+  "needsSponsorship": true,
+  "noticePeriod": "",
+  "salaryExpectation": "",
+  "yearsExperience": 5,
+  "wants": "frontend and product engineering roles. Mid level first, senior and lead are fine, junior only if it is strong. English-language jobs only.",
+  "cvFile": "cv.pdf"
+}

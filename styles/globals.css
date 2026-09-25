@@ -1,0 +1,41 @@
+html,
+body {
+  background: #0b0b0a;
+  margin: 0;
+}
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a28 #0b0b0a;
+}
+html::-webkit-scrollbar {
+  width: 10px;
+}
+html::-webkit-scrollbar-track {
+  background: #0b0b0a;
+}
+html::-webkit-scrollbar-thumb {
+  background: #2a2a28;
+  border-radius: 10px;
+  border: 3px solid #0b0b0a;
+}
+.js {
+  --bg: #0b0b0a;
+  --panel: #151514;
+  --well: #111110;
+  --line: #242422;
+  --text: #e8e7e3;
+  --muted: #8f8e89;
+  --faint: #62615d;
+  --orange: #e0703a;
+  --green: #5aa878;
+  --amber: #c99a45;
+  --lemon: #d9cf72;
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Geist, -apple-system, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}

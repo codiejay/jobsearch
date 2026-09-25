@@ -1,0 +1,8 @@
+node_modules/
+.next/
+.env.local
+# Your CV, profile, letters and board. Private, never commit.
+data/*
+!data/README.md
+!data/examples/
+tsconfig.tsbuildinfo

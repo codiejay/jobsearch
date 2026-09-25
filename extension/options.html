@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Job search board options</title>
+    <style>
+      :root {
+        --bg: #0b0b0a;
+        --panel: #151514;
+        --well: #111110;
+        --line: #242422;
+        --text: #e8e7e3;
+        --muted: #8f8e89;
+        --faint: #62615d;
+        --green: #5aa878;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      form {
+        max-width: 420px;
+        margin: 48px auto;
+        padding: 18px 20px 20px;
+        display: grid;
+        gap: 8px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      label {
+        margin-top: 6px;
+        color: var(--faint);
+        font-size: 11px;
+      }
+      input {
+        font: inherit;
+        color: var(--text);
+        background: var(--well);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 10px;
+        outline: none;
+      }
+      input:focus {
+        border-color: var(--muted);
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      button {
+        margin-top: 8px;
+        font: inherit;
+        font-weight: 500;
+        color: var(--bg);
+        background: var(--text);
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      #saved {
+        color: var(--green);
+        min-height: 1.45em;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="f">
+      <h1>Job search board</h1>
+      <label for="board">Board</label>
+      <input id="board" type="text" list="boards" placeholder="auto" />
+      <datalist id="boards">
+        <option value="auto"></option>
+        <option value="http://localhost:4750"></option>
+      </datalist>
+      <p>auto uses this machine when its board is running, and the online board below when it isn't. Or pin one by typing its URL here.</p>
+      <label for="online">Online board</label>
+      <input id="online" type="url" placeholder="https://board.example.com" />
+      <p>Where you host the board, if you do. Leave blank to use this machine only.</p>
+      <label for="key">Key</label>
+      <input id="key" type="password" autocomplete="off" />
+      <p>BOARD_KEY from the board's .env.local. Only needed for the online board. Filled in by itself whenever this machine's board is running.</p>
+      <button type="submit">Save</button>
+      <p id="saved" role="status"></p>
+    </form>
+    <script src="options.js"></script>
+  </body>
+</html>

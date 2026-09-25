@@ -1,0 +1,64 @@
+{
+  "manifest_version": 3,
+  "name": "Job search board",
+  "version": "2.0",
+  "description": "Send job posts to your job search board, fill application forms, and show new roles while you are at the computer.",
+  "permissions": [
+    "contextMenus",
+    "scripting",
+    "activeTab",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Send this page to Job search"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+J"
+      },
+      "description": "Send this page to Job search"
+    },
+    "fill-form": {
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
+      "description": "Fill this application"
+    }
+  },
+  "icons": {
+    "32": "icon32.png",
+    "128": "icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "share-main.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "share-relay.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Written by `jobsearch schedule install`. Runs the scan every hour at low
+  priority. If the Mac is asleep, launchd runs it once on the next wake.
+  Turn off: jobsearch schedule remove
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>{{LABEL}}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{NODE}}</string>
+    <string>--disable-warning=MODULE_TYPELESS_PACKAGE_JSON</string>
+    <string>{{ROOT}}/scripts/scan.mjs</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>{{ROOT}}</string>
+  <key>StartInterval</key>
+  <integer>3600</integer>
+  <key>StandardOutPath</key>
+  <string>{{LOG}}</string>
+  <key>StandardErrorPath</key>
+  <string>{{LOG}}</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>Nice</key>
+  <integer>10</integer>
+  <key>LowPriorityIO</key>
+  <true/>
+</dict>
+</plist>

@@ -1,0 +1,35 @@
+{
+  "name": "jobsearch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A private job board that finds roles, scores them, drafts the brief and cover letter, and tells you where you are.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "bin": {
+    "jobsearch": "bin/jobsearch.mjs"
+  },
+  "scripts": {
+    "dev": "node bin/jobsearch.mjs dev",
+    "build": "next build",
+    "start": "node bin/jobsearch.mjs start",
+    "scan": "node bin/jobsearch.mjs scan",
+    "doctor": "node bin/jobsearch.mjs doctor",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/*.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.39.0",
+    "next": "^14.2.0",
+    "nodemailer": "^7.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^6.4.0",
+    "@types/react": "^18.3.0",
+    "typescript": "^5.6.0"
+  }
+}

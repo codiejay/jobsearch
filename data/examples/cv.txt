@@ -1,0 +1,18 @@
+Ada Okafor
+Product engineer, Lagos. ada@example.com, adaokafor.dev
+
+Experience
+2023 to 2026, Example Labs, Frontend engineer (remote)
+- Built the PDF viewer and annotation tool in React that replaced a paid PDFTron licence.
+- Rebuilt the Chrome extension in React and TypeScript.
+- Added AI summaries and a chat assistant backed by retrieval.
+
+2021 to 2023, Example Trading, Product engineer (remote)
+- Moved the trading dashboard onto the exchange's v2 SDK and fixed two bugs upstream.
+- Found and fixed a withdraw bug caused by an underflow, and partial fills from sizing legs at the wrong price.
+
+Side project
+- A restaurant ordering system, built alone, in production with paying restaurants.
+
+Skills
+React, TypeScript, Next.js, Node, Postgres through Supabase, Tailwind.

@@ -1,0 +1,109 @@
+<!doctype html>
+<!-- A fake application form for testing the extension's form filler.
+     Open it from disk. Nothing here is sent anywhere: the form has no
+     action and the submit button does nothing. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Frontend Engineer application, Test Co</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; max-width: 640px; margin: 32px auto; padding: 0 16px; color: #222; }
+  label, legend { display: block; font-weight: 500; margin-top: 16px; }
+  input:not([type=radio]), select, textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 6px 8px; font: inherit; }
+  fieldset { border: 0; padding: 0; margin: 0; }
+  fieldset label { display: inline; font-weight: 400; margin-right: 16px; }
+  #state { color: #666; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Frontend Engineer at Test Co</h1>
+<p>Test Co builds booking software for small clinics. We are hiring a frontend engineer to work on our React app. Remote, Europe time zones.</p>
+
+<form id="apply" onsubmit="event.preventDefault(); document.title = 'SUBMITTED'; return false;">
+  <label for="name">Full name *</label>
+  <input id="name" name="name" required>
+
+  <label for="email">Email *</label>
+  <input id="email" name="email" type="email" required>
+
+  <label for="phone">Phone</label>
+  <input id="phone" name="phone" type="tel">
+
+  <label for="linkedin">LinkedIn profile</label>
+  <input id="linkedin" name="linkedin" type="url">
+
+  <label for="website">Website or portfolio</label>
+  <input id="website" name="website" type="url">
+
+  <label for="location">Where are you based?</label>
+  <input id="location" name="location">
+
+  <label for="years">Years of professional frontend experience</label>
+  <select id="years" name="years">
+    <option value="">Select...</option>
+    <option value="0-2">0 to 2</option>
+    <option value="3-5">3 to 5</option>
+    <option value="6-9">6 to 9</option>
+    <option value="10+">10 or more</option>
+  </select>
+
+  <fieldset>
+    <legend>Are you willing to work from the required location? *</legend>
+    <label><input type="radio" name="relocate" value="yes" required> Yes</label>
+    <label><input type="radio" name="relocate" value="no"> No</label>
+  </fieldset>
+
+  <label for="start">When can you start?</label>
+  <input id="start" name="start" type="date">
+
+  <label for="gender">Gender (optional, for our diversity report)</label>
+  <select id="gender" name="gender">
+    <option value="">Select...</option>
+    <option>Man</option>
+    <option>Woman</option>
+    <option>Non-binary</option>
+    <option>Prefer not to say</option>
+  </select>
+
+  <label for="motivation">Additional information: share your motivation to apply</label>
+  <textarea id="motivation" name="motivation" rows="6"></textarea>
+
+  <label for="proud">Tell us about something you built that you're proud of (300 characters max)</label>
+  <textarea id="proud" name="proud" rows="4" maxlength="300"></textarea>
+
+  <label for="resume">Resume / CV *</label>
+  <input id="resume" name="resume" type="file" accept=".pdf">
+
+  <label for="heard">How did you hear about us?</label>
+  <input id="heard" name="heard" value="A friend told me">
+
+  <label for="github">GitHub (controlled input)</label>
+  <input id="github" name="github">
+  <div id="state">Component state: (empty)</div>
+
+  <button type="submit">Submit application</button>
+</form>
+
+<script>
+  // A stand-in for a React-controlled input: it keeps its own state, only
+  // updates it from "input" events, and writes the state back on every
+  // render. A plain el.value = x would be undone by the next render.
+  (function () {
+    const el = document.getElementById("github");
+    const out = document.getElementById("state");
+    let state = "";
+    const render = () => {
+      el.value = state;
+      out.textContent = "Component state: " + (state || "(empty)");
+    };
+    el.addEventListener("input", (e) => {
+      state = e.target.value;
+      render();
+    });
+    el.addEventListener("blur", render);
+    setInterval(render, 250);
+    render();
+  })();
+</script>
+</body>
+</html>
