@@ -16,7 +16,7 @@ test("voice.md splits into material and sample", () => {
 test("the rules name the person and carry the sample", () => {
   const r = voiceRules({ name: "Ada Okafor", firstName: "Ada", website: "https://adaokafor.dev" }, md);
   assert.match(r, /If Ada wouldn't say it out loud/);
-  assert.match(r, /Then Ada Okafor and then adaokafor\.dev on their own lines/);
+  assert.match(r, /Then "Ada Okafor" and "adaokafor\.dev" on their own lines/);
   assert.match(r, /APPROVED SAMPLE IN ADA'S VOICE/);
 });
 

@@ -68,7 +68,7 @@ export function voiceRules(p: Profile, voice: string): string {
   const { material, sample } = parseVoice(voice);
   const name = first(p);
   const site = String(p.website || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const signoff = [String(p.name || name), site].filter(Boolean).join(" and then ");
+  const signoff = [String(p.name || name), site].filter(Boolean).map((x) => `"${x}"`).join(" and ");
   return `HOW EVERYTHING READS
 Write every field the way a person talks to a friend: ordinary words, short sentences, nothing fancy. If ${name} wouldn't say it out loud, rewrite it. This holds for the summary, the lists and the letter.
 matches are things ${name} built or fixed, said plainly. Never rank, commit counts, line counts, "core engineer" or "top contributor".
@@ -87,7 +87,7 @@ Never use these words or moves, they read as AI: passionate, excited, thrilled, 
 ${sample ? `\nAN APPROVED SAMPLE IN ${name.toUpperCase()}'S VOICE (match this register, do not copy its sentences)\n${sample}` : `\nThere is no sample letter yet. Write plainly and keep it short.`}`;
 }
 
-function system(p: Profile, voice: string): string {
+export function systemPrompt(p: Profile, voice: string): string {
   const name = first(p);
   const situation = [
     p.location && `${name} lives in ${p.location}${p.timezone ? `, on ${p.timezone}` : ""}.`,
@@ -148,7 +148,7 @@ ${description || "(No description was saved. Judge from the title and company on
   let model: string | undefined;
   const ask = (text: string) =>
     callClaude<Omit<Brief, "writtenAt">>({
-      system: system(person.profile, person.voice),
+      system: systemPrompt(person.profile, person.voice),
       schema: SCHEMA,
       input: text,
       timeoutMs: 120_000,
