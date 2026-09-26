@@ -14,6 +14,10 @@ reached into it and blanked the title and company. It now renders in a
 shadow root, out of the page's reach. Reload the extension on
 chrome://extensions to get it.
 
+With BOARD_PASSWORD set, the board on your own machine still opens
+without a sign-in, and the extension keeps working there. Before, setting
+the password for a hosted board locked the local one too.
+
 AGENT.md: hosting the board is now nine numbered steps, including the
 Vercel login wall that blocks the phone on a new project.
 

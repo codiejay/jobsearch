@@ -6,9 +6,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
    No BOARD_PASSWORD set: only requests from this machine (localhost) get
    in. That is the normal way to run it.
-   BOARD_PASSWORD set: the page needs the session cookie the sign-in sets,
-   and the extension sends BOARD_KEY in the x-jobsearch-key header. Set
-   both when the board is reachable from outside this machine. */
+   BOARD_PASSWORD set: requests from this machine still get in as before.
+   Anyone else needs the session cookie the sign-in sets, and the
+   extension sends BOARD_KEY in the x-jobsearch-key header. Set both when
+   the board is reachable from outside this machine. */
 
 export const SESSION_COOKIE = "jobsearch_session";
 
@@ -50,13 +51,19 @@ export function hasSession(req: IncomingMessage): boolean {
   return !!want && !!got && safeEqual(got, want);
 }
 
+// From this machine: the connection itself comes from loopback, and the
+// host is a local name. Both, so a forged Host header from outside can't
+// pass as local when the board runs behind a proxy.
 export function isLocal(req: IncomingMessage): boolean {
+  const ip = String(req.socket?.remoteAddress || "");
+  const loop = ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
   const host = String(req.headers.host || "").replace(/:\d+$/, "");
-  return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  return loop && (host === "localhost" || host === "127.0.0.1" || host === "[::1]");
 }
 
 export function allowed(req: IncomingMessage): boolean {
-  if (!process.env.BOARD_PASSWORD) return isLocal(req);
+  if (isLocal(req)) return true;
+  if (!process.env.BOARD_PASSWORD) return false;
   if (hasSession(req)) return true;
   const want = process.env.BOARD_KEY;
   const got = req.headers["x-jobsearch-key"];

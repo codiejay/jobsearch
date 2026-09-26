@@ -128,6 +128,7 @@ this folder.
 
    ```
    BOARD_PASSWORD=   what they type on the phone to open the board
+                     (their own machine never asks for it)
    BOARD_KEY=        a long random string, for the extension
    ```
 
