@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import Meter from "./Meter";
-import { REGION_NAME, ago, appliedAt, band, calm, heat, place, stage, stamp, type Job } from "../lib/ui";
+import { REGION_NAME, ago, appliedAt, band, calm, day, heat, place, stage, stamp, type Job } from "../lib/ui";
 
 // Remote roles read "Remote, EU"; on-site ones show the city.
 export function where(j: Job) {
@@ -65,7 +65,10 @@ export default function Row({
       <td className="loc" title={j.location}>
         {where(j)}
       </td>
-      <td className={`stc s-${stage(j).key}`}>
+      <td
+        className={`stc s-${stage(j).key}`}
+        title={mounted && j.status === "applied" && appliedAt(j) ? `Applied ${day(appliedAt(j)!, true)}` : undefined}
+      >
         {stage(j).label}
         {mounted && j.status === "applied" && appliedAt(j) && (
           <span className="when"> {stamp(appliedAt(j)!)}</span>

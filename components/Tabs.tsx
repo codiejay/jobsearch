@@ -14,10 +14,23 @@ export default function Tabs({
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [box, setBox] = useState<{ x: number; w: number } | null>(null);
   const [ready, setReady] = useState(false);
+  const nav = useRef<HTMLElement | null>(null);
+  // On a phone the strip scrolls sideways. Fade whichever edge has more tabs.
+  const [more, setMore] = useState({ l: false, r: false });
+  const edges = () => {
+    const n = nav.current;
+    if (n) setMore({ l: n.scrollLeft > 2, r: n.scrollLeft + n.clientWidth < n.scrollWidth - 2 });
+  };
   useEffect(() => {
     const place = () => {
       const el = refs.current[value];
       if (el) setBox({ x: el.offsetLeft, w: el.offsetWidth });
+      const n = nav.current;
+      if (el && n && n.scrollWidth > n.clientWidth) {
+        const left = el.offsetLeft - (n.clientWidth - el.offsetWidth) / 2;
+        n.scrollTo({ left, behavior: ready ? "smooth" : "auto" });
+      }
+      edges();
     };
     place();
     document.fonts?.ready.then(place);
@@ -30,7 +43,12 @@ export default function Tabs({
   }, [value, items.length]);
 
   return (
-    <nav className="tabs" aria-label="Lists">
+    <nav
+      ref={nav}
+      className={`tabs ${more.l ? "fl" : ""} ${more.r ? "fr" : ""}`}
+      aria-label="Lists"
+      onScroll={edges}
+    >
       {box && (
         <span
           className={`hl ${ready ? "move" : ""}`}
@@ -67,6 +85,15 @@ export default function Tabs({
         }
         .tabs::-webkit-scrollbar {
           display: none;
+        }
+        .tabs.fr {
+          mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+        }
+        .tabs.fl {
+          mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent);
+        }
+        .tabs.fl.fr {
+          mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent);
         }
         .hl {
           position: absolute;

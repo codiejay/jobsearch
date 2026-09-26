@@ -165,16 +165,17 @@ export function day(t: number, withTime = false) {
   return `${date} at ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-// Short enough for the phone's meta line: "21:51" today, "yesterday
-// 21:51", "25 Sep 21:51" before that.
+// The applied stamp in the table: "21:51" today, then "yesterday", a
+// weekday inside the week, "25 Sep" after that. The time only matters
+// today; the cell's title carries the full date and time.
 export function stamp(t: number) {
   const d = new Date(t);
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   const start = new Date();
   start.setHours(0, 0, 0, 0);
-  if (t >= start.getTime()) return time;
-  if (t >= start.getTime() - 864e5) return `yesterday ${time}`;
-  return `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${time}`;
+  if (t >= start.getTime()) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  if (t >= start.getTime() - 864e5) return "yesterday";
+  if (t >= start.getTime() - 6 * 864e5) return d.toLocaleDateString("en-GB", { weekday: "short" });
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 export function useMounted() {

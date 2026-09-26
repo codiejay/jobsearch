@@ -534,7 +534,7 @@ export default function Board({ jobs: initial, scannedAt, now, person, ai }: Pro
           color: var(--amber);
         }
         .js .stc {
-          width: 124px;
+          width: 140px;
         }
         .js td.stc {
           font-size: 12px;
@@ -716,7 +716,7 @@ export default function Board({ jobs: initial, scannedAt, now, person, ai }: Pro
              right of it and the age right under the score, like an inbox. */
           .js tbody tr:not(.xrow):not(.none) {
             display: grid;
-            grid-template-columns: minmax(0, auto) minmax(0, auto) minmax(0, auto) 1fr auto;
+            grid-template-columns: minmax(0, auto) minmax(0, auto) auto 1fr auto;
             align-items: baseline;
             row-gap: 4px;
             padding: 13px 16px;
@@ -770,8 +770,10 @@ export default function Board({ jobs: initial, scannedAt, now, person, ai }: Pro
           .js td.loc {
             grid-column: 2;
           }
+          /* The status never truncates; company and place give way first. */
           .js td.stc {
             grid-column: 3;
+            overflow: visible;
           }
           .js td.age {
             grid-column: 5;
