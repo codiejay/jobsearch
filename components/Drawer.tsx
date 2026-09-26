@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState } from "react";
+import type { AiSource } from "../lib/claude";
 import List from "./List";
 import { AFTER, LABEL, STAGES, ago, appliedAt, day, type Brief, type Detail, type Job, type Status } from "../lib/ui";
 
 /* Opens under the clicked row: how to apply, the description, and (next
    step) the drafted message to approve. */
+const COST: Record<AiSource, string> = {
+  api: "About 6 cents.",
+  claude: "Uses your Claude Code plan.",
+  codex: "Uses your Codex plan.",
+};
+
 export default function Drawer({
   job: j,
   now,
+  ai,
   onClose,
   onStatus,
   onBrief,
@@ -14,6 +22,7 @@ export default function Drawer({
 }: {
   job: Job;
   now: number;
+  ai: AiSource | null;
   onClose: () => void;
   onStatus: (s: Job["status"]) => void;
   onBrief: (b: Brief, status: Status) => void;
@@ -195,7 +204,7 @@ export default function Drawer({
           !b && (
             <div className="write fade">
               <button onClick={write}>Write brief and cover letter</button>
-              <span>About 6 cents.</span>
+              <span>{ai ? COST[ai] : "Needs an API key, Claude Code or Codex. Run jobsearch doctor."}</span>
               {err && <p className="err">{err}</p>}
             </div>
           )

@@ -2,6 +2,7 @@ import type { GetServerSideProps } from "next";
 import Head from "next/head";
 import Board, { type Props } from "../components/Board";
 import SignIn from "../components/SignIn";
+import { aiSource } from "../lib/claude";
 import { allowed } from "../lib/guard";
 import { getMeta, getProfile, listJobs } from "../lib/store";
 
@@ -22,9 +23,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ req, r
     const jobs = all.map(({ desc, blurb, where, brief, ...j }: any) =>
       brief ? { ...j, verdict: brief.verdict, fit: brief.fit } : j
     );
-    return { props: { jobs, scannedAt: meta.scannedAt, now: Date.now(), person } };
+    return { props: { jobs, scannedAt: meta.scannedAt, now: Date.now(), person, ai: aiSource() } };
   } catch {
-    return { props: { jobs: [], scannedAt: null, now: Date.now(), person } };
+    return { props: { jobs: [], scannedAt: null, now: Date.now(), person, ai: aiSource() } };
   }
 };
 

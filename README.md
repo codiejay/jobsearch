@@ -70,7 +70,7 @@ Every draft is checked for words that read as AI, retried once if it slips, and 
 
 ## Setup
 
-You need a Mac that stays on, Node 22 or newer, an Anthropic API key (about 6 cents per role), Chrome, and the ntfy app on your phone.
+You need a Mac that stays on, Node 22 or newer, Chrome, and the ntfy app on your phone. For the drafts you need one of these: an Anthropic API key (about 6 cents per role), or Claude Code or Codex logged in on the Mac. Without a key the board uses Claude Code, or Codex if that's all you have; `AI=claude` or `AI=codex` in .env.local picks one. It runs on your plan, writes 3 briefs a scan instead of 8, and works only on your own computer, not on a hosted board.
 
 The easy way: clone this, open the folder in your coding agent and say
 
@@ -112,4 +112,4 @@ The defaults are for a frontend or product engineer who lives outside the EU and
 
 ## Privacy
 
-Everything runs on your machine. The CV and letters go to Anthropic to write the brief, and nowhere else. A phone ping carries the title, company, location and fit only. The board answers only on localhost unless you set a password. If you host it and run `jobsearch sync`, your CV, profile and voice are copied to your own Redis so the hosted board can draft too.
+Everything runs on your machine. The CV and letters go to the model that writes the brief (Anthropic, or OpenAI if you use Codex), and nowhere else. A phone ping carries the title, company, location and fit only. The board answers only on localhost unless you set a password. If you host it and run `jobsearch sync`, your CV, profile and voice are copied to your own Redis so the hosted board can draft too.

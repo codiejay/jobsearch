@@ -84,7 +84,7 @@ const commands = {
     if (!existsSync(path.join(DATA, "cv.pdf"))) console.log("put your CV PDF at data/cv.pdf. It is attached when a letter is sent by email.");
     if (!existsSync(path.join(ROOT, ".env.local"))) {
       copyFileSync(path.join(ROOT, ".env.example"), path.join(ROOT, ".env.local"));
-      console.log("copied .env.example to .env.local. Add your ANTHROPIC_API_KEY there.");
+      console.log("copied .env.example to .env.local. Add your ANTHROPIC_API_KEY there, or leave it empty to use Claude Code or Codex.");
     }
     rl.close();
     console.log("\nNext: jobsearch doctor");
@@ -99,7 +99,11 @@ const commands = {
     ok("node 22.6 or newer", Number(process.versions.node.split(".")[0]) >= 22, `you have ${process.versions.node}`);
     ok("node_modules", existsSync(path.join(ROOT, "node_modules")), "run: npm install");
     ok(".env.local", existsSync(path.join(ROOT, ".env.local")), "copy .env.example to .env.local");
-    ok("ANTHROPIC_API_KEY", !!process.env.ANTHROPIC_API_KEY, "add it to .env.local (drafts and form answers need it)");
+    await import("../scripts/ts-hooks.mjs");
+    const { aiSource, aiMissing } = await import("../lib/claude.ts");
+    const ai = aiSource();
+    const how = { api: "Anthropic API key", claude: "Claude Code on this computer", codex: "Codex on this computer" };
+    ok(`AI${ai ? `: ${how[ai]}` : ""}`, !!ai, `${aiMissing()} Drafts and form answers need it.`);
     ok("data/profile.json", existsSync(path.join(DATA, "profile.json")), "run: jobsearch init");
     const cv = path.join(DATA, "cv.txt");
     ok("data/cv.txt is yours", existsSync(cv) && !readFileSync(cv, "utf8").includes("Ada Okafor"), "paste your CV as plain text into data/cv.txt");

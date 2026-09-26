@@ -47,8 +47,13 @@ Run every command from this folder.
    live, timezone, relocation and visa situation. Writes data/profile.json
    and copies the example cv.txt and voice.md into data/. Copies
    .env.example to .env.local.
-3. Add `ANTHROPIC_API_KEY=` to .env.local. They paste the key; never ask
-   them to paste it into the chat.
+3. Ask how they want drafts written. With an Anthropic API key: they add
+   `ANTHROPIC_API_KEY=` to .env.local and paste the key themselves; never
+   ask them to paste it into the chat. Without one: Claude Code or Codex,
+   installed and logged in on this computer, is enough, and nothing goes
+   in .env.local. `AI=claude` or `AI=codex` picks one when both are
+   installed. That way runs on their plan and only works on this
+   computer, not on a hosted board.
 4. Replace data/cv.txt with their CV as plain text. Replace both sections
    of data/voice.md: "Worth telling" (three to six lines of real work) and
    "Sample letter" (one letter in their own words, under 200 words). Put

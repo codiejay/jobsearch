@@ -50,7 +50,10 @@ export default {
   keepMin: 85,
   draftMin: 70,
   // Briefs per scan, and the most the scan spends on them in seconds.
+  // Through Claude Code or Codex, each brief comes out of your plan's
+  // limits and takes longer, so the scan writes fewer.
   draftMax: 8,
+  draftMaxLocal: 3,
   draftSeconds: 360,
 
   // Days a role stays on the board when nothing is done with it.

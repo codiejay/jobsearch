@@ -467,9 +467,11 @@ async function main() {
 // under Ready to apply or Write yourself. Re-reads the role before each
 // write, because the page may have changed a status meanwhile.
 async function draft(t0) {
-  if (!process.env.ANTHROPIC_API_KEY) return console.warn("drafts skipped: no ANTHROPIC_API_KEY");
+  const { usd, aiSource, aiMissing } = await import("../lib/claude.ts");
+  const source = aiSource();
+  if (!source) return console.warn(`drafts skipped: ${aiMissing()}`);
   const { writeBrief, loadPerson } = await import("../lib/brief.ts");
-  const { usd } = await import("../lib/claude.ts");
+  const most = source === "api" ? DRAFT_MAX : Math.min(DRAFT_MAX, config.draftMaxLocal ?? 3);
   let person;
   try {
     person = await loadPerson(store);
@@ -489,7 +491,7 @@ async function draft(t0) {
         (j.desc || j.blurb) &&
         j.score >= DRAFT_MIN
     )
-    .slice(0, DRAFT_MAX);
+    .slice(0, most);
 
   let drafted = 0;
   let spent = 0;
@@ -520,7 +522,7 @@ async function draft(t0) {
     }
   }
   await alert(worth);
-  console.log(`drafted ${drafted} of ${todo.length}, $${spent.toFixed(2)}, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  console.log(`drafted ${drafted} of ${todo.length} via ${source}, $${spent.toFixed(2)}, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 }
 
 // Where the news goes. At the desk (a key or the mouse in the last

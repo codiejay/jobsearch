@@ -1,5 +1,6 @@
 import Head from "next/head";
 import { Fragment, useCallback, useState } from "react";
+import type { AiSource } from "../lib/claude";
 import Drawer from "./Drawer";
 import Focus from "./Focus";
 import Posted from "./Posted";
@@ -8,9 +9,10 @@ import Tabs from "./Tabs";
 import { OUT, VIEWS, ago, appliedAt, focusQueue, useMounted, type FocusRun, type Job, type Person, rank } from "../lib/ui";
 
 // now: the server's clock, so "5h ago" renders the same on both sides.
-export type Props = { jobs: Job[]; scannedAt: number | null; now: number; person: Person };
+// ai: what writes the drafts, so the drawer can say what one costs.
+export type Props = { jobs: Job[]; scannedAt: number | null; now: number; person: Person; ai: AiSource | null };
 
-export default function Board({ jobs: initial, scannedAt, now, person }: Props) {
+export default function Board({ jobs: initial, scannedAt, now, person, ai }: Props) {
   const [jobs, setJobs] = useState(initial);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
@@ -207,6 +209,7 @@ export default function Board({ jobs: initial, scannedAt, now, person }: Props) 
                     <tr className="xrow">
                       <td colSpan={6}>
                         <Drawer
+                          ai={ai}
                           job={j}
                           now={now}
                           onClose={close}
