@@ -56,6 +56,38 @@ export default {
   draftMaxLocal: 3,
   draftSeconds: 360,
 
+  // What gets in. takeableOnly drops any new role you could not take from
+  // where you are: not remote, not on-site in a home region, and no visa
+  // offer in the posting. newMax is the most new roles one scan may add,
+  // best first; the rest are left out and logged. With ten feeds a loose
+  // hour finds hundreds, so keep this small.
+  takeableOnly: true,
+  newMax: 30,
+
+  // The feeds. Set one to false to skip it.
+  feeds: {
+    linkedin: true,
+    hn: true,
+    remotive: true,
+    weworkremotely: true,
+    workingnomads: true,
+    jobgether: true, // remote frontend roles, Europe and worldwide
+    jobicy: true, // remote roles with the eligible countries listed
+    arbeitnow: true, // Europe, mostly on-site Germany, UK and France
+    himalayas: true, // remote roles with exact location restrictions
+    landingjobs: true, // Portugal
+    companies: true, // the boards below
+  },
+
+  // Company hiring pages read every scan, for roles the day they open.
+  // ats is ashby, greenhouse or lever; slug is the company's name in its
+  // careers URL (jobs.ashbyhq.com/attio, job-boards.greenhouse.io/vercel,
+  // jobs.lever.co/mistral). name is what the board shows.
+  companies: [
+    { ats: "ashby", slug: "attio", name: "Attio" },
+    { ats: "greenhouse", slug: "vercel", name: "Vercel" },
+  ],
+
   // Days a role stays on the board when nothing is done with it.
   keepDays: 14,
   keepDaysHn: 35,

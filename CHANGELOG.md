@@ -7,6 +7,24 @@ bumps the last one.
 To update your copy: `git pull`, then `npm run doctor`. Run `npm install`
 only when an entry says so.
 
+## 1.2.0 (2026-09-26)
+
+Six more places the scan looks, all free and keyless: Jobgether, Jobicy,
+Arbeitnow, Himalayas, Landing.jobs, and the hiring pages of companies you
+name in the config (Ashby, Greenhouse or Lever boards). Each feed can be
+turned off under `feeds` in jobsearch.config.mjs. See scripts/feeds.mjs.
+
+The gate is stricter, so more feeds does not mean a longer board. A new
+role must clear the 85 bar on what it is, must be takeable from where you
+are (remote, on-site in a home region, or a visa offer in the posting),
+and only the 30 best new roles of a scan get in. The rest are counted in
+the log and left out. `takeableOnly` and `newMax` in the config.
+
+Jobgether lists roles without a description; the scan reads the offer
+page for the ones worth a brief, ten a scan.
+
+`npm run doctor` after pulling. No new packages.
+
 ## 1.1.1 (2026-09-26)
 
 The "roles ready" notice kept its titles on every page. Some sites' CSS

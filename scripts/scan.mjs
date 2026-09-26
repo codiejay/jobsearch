@@ -8,6 +8,13 @@
 //   Remotive           remote software jobs API.
 //   We Work Remotely   front-end and full-stack RSS feeds.
 //   Working Nomads     public jobs JSON, development roles only.
+//   Jobgether, Jobicy, Arbeitnow, Himalayas, Landing.jobs and the company
+//   boards you name: see scripts/feeds.mjs. Any feed can be turned off in
+//   jobsearch.config.mjs.
+//
+// What gets in is strict on purpose (scripts/intake.mjs): a new role must
+// score, must be takeable from where you are, and only the newMax best
+// new roles of a scan make the board.
 //
 //   jobsearch scan               since the last scan (1 to 24 hours)
 //   jobsearch scan --hours 24    the last day
@@ -21,13 +28,14 @@ import { fileURLToPath } from "node:url";
 import { ping, runPings } from "./ping.mjs";
 import { loadEnv } from "./env.mjs";
 import { score, region, FE, PRODUCT, DESIGN, OTHER_FE } from "./score.mjs";
+import { get, decode, plain, UA } from "./http.mjs";
+import { intake } from "./intake.mjs";
+import * as feeds from "./feeds.mjs";
 import config from "../jobsearch.config.mjs";
 
 // The store is TypeScript, so it loads through ts-hooks.mjs by dynamic
 // import, after the hooks are registered. Set in main().
 let store;
-const UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36";
 const hoursArg = process.argv.indexOf("--hours");
 // Without --hours, look back to the last scan (at least 1 hour, at most
 // a day), so a machine that slept through a few runs doesn't miss roles.
@@ -66,26 +74,6 @@ const DRAFT_BUDGET = config.draftSeconds * 1e3;
 const NO_DRAFT = process.argv.includes("--no-draft");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const decode = (s) =>
-  s
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&#x27;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&#x2F;/g, "/")
-    .replace(/\s+/g, " ")
-    .trim();
-
-async function get(url, opts = {}) {
-  const res = await fetch(url, {
-    headers: { "user-agent": UA, ...(opts.headers || {}) },
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!res.ok) throw new Error(`${res.status} ${url}`);
-  return opts.json ? res.json() : res.text();
-}
 
 // "12 minutes ago" -> ms ago
 function agoMs(text) {
@@ -239,19 +227,6 @@ export async function remotive() {
   return jobs;
 }
 
-// HTML to plain text with paragraph and list breaks kept, for desc.
-const plain = (html) =>
-  html
-    .replace(/<li[^>]*>/gi, "\n• ")
-    .replace(/<br\s*\/?>|<\/p>|<\/ul>|<\/h\d>|<\/div>/gi, "\n")
-    .split("\n")
-    .map((l) => decode(l))
-    .filter((l, i, a) => l || (i > 0 && a[i - 1]))
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
-    .slice(0, 4000);
-
 export async function weworkremotely() {
   const jobs = [];
   for (const cat of ["remote-front-end-programming-jobs", "remote-full-stack-programming-jobs"]) {
@@ -345,10 +320,27 @@ async function main() {
     return;
   }
   HOURS = hoursArg > -1 ? Number(process.argv[hoursArg + 1]) : await sinceLastScan();
-  const results = await Promise.allSettled([linkedin(), hackernews(), remotive(), weworkremotely(), workingnomads()]);
+  // The feeds that filter by date get an hour of slack, for a machine that
+  // slept through a run and for boards that post on a delay.
+  const since = Date.now() - (HOURS + 1) * 36e5;
+  const on = (k) => config.feeds?.[k] !== false;
+  const runs = [
+    ["LinkedIn", "linkedin", () => linkedin()],
+    ["HN", "hn", () => hackernews()],
+    ["Remotive", "remotive", () => remotive()],
+    ["We Work Remotely", "weworkremotely", () => weworkremotely()],
+    ["Working Nomads", "workingnomads", () => workingnomads()],
+    ["Jobgether", "jobgether", () => feeds.jobgether(since)],
+    ["Jobicy", "jobicy", () => feeds.jobicy(since)],
+    ["Arbeitnow", "arbeitnow", () => feeds.arbeitnow(since)],
+    ["Himalayas", "himalayas", () => feeds.himalayas(since)],
+    ["Landing.jobs", "landingjobs", () => feeds.landingjobs(since)],
+    ["Company boards", "companies", () => feeds.companies(config.companies, since)],
+  ].filter(([, k]) => on(k));
+  const results = await Promise.allSettled(runs.map(([, , run]) => run()));
   const found = [];
   results.forEach((r, i) => {
-    const name = ["LinkedIn", "HN", "Remotive", "We Work Remotely", "Working Nomads"][i];
+    const name = runs[i][0];
     if (r.status === "fulfilled") {
       console.log(`${name}: ${r.value.length} raw`);
       found.push(...r.value);
@@ -367,14 +359,8 @@ async function main() {
   // are one role, whether the scan found it or it was sent in by hand.
   const n = (s = "") => s.toLowerCase().replace(/\b(inc|ltd|llc|gmbh|bv|sa|ag)\b|front[- ]end|[^a-z0-9]/g, (m) => (/front/.test(m) ? "frontend" : ""));
   const roleKey = (j) => `${n(j.company)}|${n(j.title)}`;
-  const seenKey = new Set(prev.jobs.map(roleKey));
-  for (const j of found) {
-    const s = score(j);
-    if (!s) continue;
-    const old = byId.get(j.id);
-    const key = roleKey(j);
-    if (!old && seenKey.has(key)) continue; // same role posted twice
-    seenKey.add(key);
+  const picked = intake(found, byId, roleKey, { takeableOnly: config.takeableOnly, newMax: config.newMax, keepMin: KEEP_MIN });
+  for (const { job: j, s, old } of [...picked.update, ...picked.add]) {
     // Start from what's saved, so the brief, the looked-up description and
     // the apply method survive when a feed returns the same role again.
     byId.set(j.id, {
@@ -386,6 +372,7 @@ async function main() {
     });
     if (!old) added++;
   }
+  if (picked.skipped) console.log(`${picked.skipped} more scored but were under the ${config.newMax ?? 30} best new roles, left out`);
 
   // Keep two weeks, but never drop something acted on. HN threads are
   // monthly, so they get longer.
@@ -453,6 +440,24 @@ async function main() {
     await sleep(1500);
   }
   console.log(`looked up ${looked} LinkedIn postings`);
+
+  // Jobgether's list has no description. Read the offer page for the
+  // roles worth a brief, a few per scan, so they can be drafted.
+  let read = 0;
+  for (const j of byId.values()) {
+    if (Date.now() - t0 > RUN_BUDGET - 15e3 || read >= 10) break;
+    if (j.source !== "Jobgether" || j.desc || j.looked) continue;
+    if ((score(j)?.score ?? 0) < 55) continue;
+    try {
+      Object.assign(j, await feeds.lookupJobgether(j.url), { looked: Date.now() });
+      read++;
+    } catch (e) {
+      console.warn("jobgether page", e.message);
+      if (/429|403/.test(e.message)) break;
+    }
+    await sleep(1000);
+  }
+  if (read) console.log(`read ${read} Jobgether pages`);
 
   const kept = await save();
   console.log(`${added} new, ${kept} kept, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
@@ -568,9 +573,6 @@ async function alert(worth) {
   for (const m of runPings(phone)) await ping(m);
 }
 
-// Only run when called as a script; the tests and one-off checks import
-// the feed functions without starting a scan.
-if (process.argv[1] === fileURLToPath(import.meta.url)) 
 // Only run when called as a script; the tests and one-off checks import
 // the feed functions without starting a scan.
 if (process.argv[1] === fileURLToPath(import.meta.url)) main();

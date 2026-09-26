@@ -20,7 +20,7 @@
 
 ## What you get
 
-Every hour, a script pulls fresh roles from LinkedIn, the Hacker News hiring thread, Remotive, We Work Remotely and Working Nomads. It scores each one on the title, the level, where it is and whether you could take it. The good ones go to Claude, which writes a brief and a letter. You read, you decide, you send.
+Every hour, a script pulls fresh roles from LinkedIn, the Hacker News hiring thread, Remotive, We Work Remotely, Working Nomads, Jobgether, Jobicy, Arbeitnow, Himalayas, Landing.jobs and the hiring pages of companies you name. It scores each one on the title, the level, where it is and whether you could take it. Only roles you could take get in, at most 30 new ones a scan. The good ones go to Claude, which writes a brief and a letter. You read, you decide, you send.
 
 <br>
 

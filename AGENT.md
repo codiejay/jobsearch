@@ -9,9 +9,11 @@ they have (an API key, their CV, their phone).
 ## What it is
 
 Every hour a script pulls fresh frontend and product engineering roles
-from LinkedIn, the Hacker News hiring thread, Remotive, We Work Remotely
-and Working Nomads. It scores each one on the title, level, location,
-language and how it applies, keeps the ones worth a look, and asks Claude
+from LinkedIn, the Hacker News hiring thread, Remotive, We Work Remotely,
+Working Nomads, Jobgether, Jobicy, Arbeitnow, Himalayas, Landing.jobs and
+the hiring pages of companies named in the config. It scores each one on
+the title, level, location, language and how it applies, keeps only roles
+they could take from where they are, at most 30 new ones a scan, and asks Claude
 to write a brief (what the job is, how they fit, what is missing, whether
 to apply) and a cover letter in their voice. The board at
 http://localhost:4750 shows the roles. A Chrome extension sends job posts
