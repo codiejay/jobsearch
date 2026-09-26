@@ -428,22 +428,38 @@ function badge(tab, text, color) {
 // dark panel, hairline border, and the table's heat bar as the progress
 // bar. The bar fills once toward the ~30s estimate, then settles green
 // (added) or amber (not added). No loops.
-function toast(tab, state, title, message) {
+// Both notices cancel the page's zoom, so they stay the same size on a
+// page zoomed to 150% as on one at 100%.
+async function pageZoom(tabId) {
+  try {
+    return await chrome.tabs.getZoom(tabId);
+  } catch {
+    return 1;
+  }
+}
+
+async function toast(tab, state, title, message) {
+  const zoom = await pageZoom(tab.id);
   chrome.scripting
     .executeScript({
       target: { tabId: tab.id },
-      args: [state, title, message],
-      func: (state, title, message) => {
+      args: [state, title, message, zoom],
+      func: (state, title, message, zoom) => {
         const ID = "__jobsearch_toast";
         let el = document.getElementById(ID);
+        if (el && el.dataset.zoom !== String(zoom)) {
+          el.remove();
+          el = null;
+        }
         if (!el) {
           el = document.createElement("div");
           el.id = ID;
+          el.dataset.zoom = String(zoom);
           el.innerHTML =
             '<div data-k="top"><span data-k="track"><span data-k="fill"></span></span><span data-k="label">Job search</span></div>' +
             '<div data-k="title"></div><div data-k="msg"></div>';
           const css = (k, v) => (k ? el.querySelector(`[data-k="${k}"]`) : el).setAttribute("style", v);
-          css(null, "all:initial;position:fixed;top:16px;right:16px;z-index:2147483647;box-sizing:border-box;width:272px;padding:11px 13px 12px;background:#151514;border:1px solid #242422;border-radius:10px;box-shadow:0 10px 30px -10px rgba(0,0,0,.6);font:12px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:#e8e7e3;-webkit-font-smoothing:antialiased;opacity:0;transform:translateY(-4px);transition:opacity .22s cubic-bezier(.25,1,.5,1),transform .22s cubic-bezier(.25,1,.5,1)");
+          css(null, `all:initial;zoom:${1 / zoom};position:fixed;top:16px;right:16px;z-index:2147483647;box-sizing:border-box;width:272px;padding:11px 13px 12px;background:#151514;border:1px solid #242422;border-radius:10px;box-shadow:0 10px 30px -10px rgba(0,0,0,.6);font:12px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:#e8e7e3;-webkit-font-smoothing:antialiased;opacity:0;transform:translateY(-4px);transition:opacity .22s cubic-bezier(.25,1,.5,1),transform .22s cubic-bezier(.25,1,.5,1)`);
           css("top", "display:flex;align-items:center;gap:8px;margin-bottom:6px");
           css("track", "display:block;width:34px;height:3px;border-radius:3px;background:#262624;overflow:hidden");
           css("fill", "display:block;height:100%;width:0;border-radius:3px;background:#8f8e89;transition:width 30s cubic-bezier(.1,.6,.3,1),background-color .2s");
@@ -573,9 +589,9 @@ chrome.runtime.onMessage.addListener((m, sender) => {
 
 // Runs in the page, inside a shadow root, so the page's CSS can't reach
 // it. Redrawn only when the roles change, so switching tabs doesn't replay it.
-function deskToast(roles) {
+function deskToast(roles, zoom) {
   const ID = "__jobsearch_ready";
-  const sig = roles.map((r) => r.id).join(",");
+  const sig = roles.map((r) => r.id).join(",") + "@" + zoom;
   const old = document.getElementById(ID);
   if (old && old.dataset.sig === sig) return;
   old?.remove();
@@ -586,7 +602,7 @@ function deskToast(roles) {
   const host = document.createElement("div");
   host.id = ID;
   host.dataset.sig = sig;
-  host.setAttribute("style", "all:initial;position:fixed;top:16px;right:16px;z-index:2147483647");
+  host.setAttribute("style", `all:initial;zoom:${1 / zoom};position:fixed;top:16px;right:16px;z-index:2147483647`);
   const el = document.createElement("div");
   el.innerHTML = `
     <div data-k="head">
@@ -648,6 +664,10 @@ function deskToast(roles) {
   el.style.transform = "none";
 }
 
-function showDesk(tab, roles) {
-  chrome.scripting.executeScript({ target: { tabId: tab.id }, func: deskToast, args: [roles] }).catch(() => {});
+async function showDesk(tab, roles) {
+  const zoom = await pageZoom(tab.id);
+  chrome.scripting.executeScript({ target: { tabId: tab.id }, func: deskToast, args: [roles, zoom] }).catch(() => {});
 }
+
+// Redraw at the new size when the zoom changes on the page you're on.
+chrome.tabs.onZoomChange.addListener((z) => z.newZoomFactor !== z.oldZoomFactor && showWhereAllowed());

@@ -14,6 +14,9 @@ reached into it and blanked the title and company. It now renders in a
 shadow root, out of the page's reach. Reload the extension on
 chrome://extensions to get it.
 
+Both extension notices ignore the page zoom, so a page at 150% no longer
+shows a 150% notice.
+
 With BOARD_PASSWORD set, the board on your own machine still opens
 without a sign-in, and the extension keeps working there. Before, setting
 the password for a hosted board locked the local one too.
