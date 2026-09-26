@@ -99,19 +99,87 @@ SMTP_USER and SMTP_PASS in .env.local (Gmail: an app password, not the
 account password). One send per role, ever. "Send to me" sends a copy to
 themselves first. Without SMTP, the copy button still works.
 
-## Hosting the board (optional, later)
+## Hosting the board, so the phone can open it (optional)
 
-The board only answers on localhost until BOARD_PASSWORD is set. To reach
-it from a phone, deploy this folder to Vercel or any Node host, set
-BOARD_PASSWORD, BOARD_KEY (for the extension), JOBSEARCH_STORE=redis and
-the Upstash keys, and set BOARD_URL in .env.local on the Mac so pings
-open it. The Mac still runs the scan; the host shows the board and can
-write briefs for roles sent in from the phone. For that it needs the
-person's files: run `node bin/jobsearch.mjs sync` on the Mac once, and
-again whenever cv.txt, profile.json, voice.md or cv.pdf change. That
-copies them to Redis. Without sync, the hosted board shows roles but
-cannot draft or send. vercel.json already gives the API routes 300
-seconds, which a brief needs.
+On a laptop the board answers only on localhost. To open it from a phone
+it has to live on a server. Vercel's free plan and Upstash's free plan are
+enough. The Mac still runs the hourly scan; the server only shows the
+board and writes briefs for roles sent in from the phone. The hosted
+board needs an Anthropic API key. Claude Code and Codex only work on the
+Mac.
+
+Do this after everything above works on the Mac. Every command runs from
+this folder.
+
+1. Redis. At https://upstash.com make a free Redis database. Copy its
+   REST URL and REST token. Add to .env.local on the Mac:
+
+   ```
+   JOBSEARCH_STORE=redis
+   KV_REST_API_URL=
+   KV_REST_API_TOKEN=
+   ```
+
+   Restart the board (`node bin/jobsearch.mjs dev`). From now on the Mac
+   and the server share one board. Roles already in data/board.json are
+   not carried over; the next scan fills the new store.
+
+2. Password and key. Add to .env.local, with values they choose:
+
+   ```
+   BOARD_PASSWORD=   what they type on the phone to open the board
+   BOARD_KEY=        a long random string, for the extension
+   ```
+
+   Make the key with `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"`.
+
+3. Copy their files to Redis: `node bin/jobsearch.mjs sync`. Run it again
+   whenever cv.txt, profile.json, voice.md or cv.pdf change. Without it the
+   hosted board shows roles but cannot draft or send.
+
+4. Vercel. `npm install -g vercel`, then `vercel login` (opens the
+   browser once), then `vercel link` and accept a new project. Add the
+   same values as production env vars, one at a time:
+
+   ```
+   vercel env add ANTHROPIC_API_KEY production
+   vercel env add BOARD_PASSWORD production
+   vercel env add BOARD_KEY production
+   vercel env add JOBSEARCH_STORE production        (value: redis)
+   vercel env add KV_REST_API_URL production
+   vercel env add KV_REST_API_TOKEN production
+   vercel env add SMTP_USER production              (only if they send email)
+   vercel env add SMTP_PASS production
+   ```
+
+   Each command asks for the value; they paste it in the terminal, never
+   in the chat. Then `vercel deploy --prod`. The build runs on Vercel,
+   not on the Mac. It prints the address, like https://name.vercel.app.
+
+5. Turn off Vercel's own login wall. New projects get "Vercel
+   Authentication" on by default, which blocks the phone and the extension
+   with a 401 even with the right password. In the Vercel dashboard:
+   the project, Settings, Deployment Protection, Vercel Authentication,
+   Disabled, Save. The board's own password is the gate from here.
+
+6. Check it. Open the address on the phone: a sign-in page, then the same
+   roles as on the Mac. Wrong password must fail.
+
+7. Point the Mac at it. Add to .env.local: `BOARD_URL=https://name.vercel.app`.
+   Phone pings now open the hosted board. Restart the board.
+
+8. The extension. Chrome, the extension's options: set "Online board" to
+   the address and "Key" to BOARD_KEY. "Auto" then uses the Mac's board
+   when it is running and the online one when it is not. If BOARD_KEY on
+   the Mac's .env.local matches Vercel's, the key fills in by itself.
+
+9. Their own domain, if they have one. `vercel domains add board.their-domain.com`,
+   then a CNAME record at their DNS host: name `board`, target
+   `cname.vercel-dns.com`, proxy off. If the address still fails after
+   ten minutes, `vercel certs issue board.their-domain.com`.
+
+A push to the connected GitHub repo redeploys the board. vercel.json
+already gives the API routes 300 seconds, which a brief needs.
 
 ## When something breaks
 

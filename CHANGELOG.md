@@ -14,6 +14,9 @@ reached into it and blanked the title and company. It now renders in a
 shadow root, out of the page's reach. Reload the extension on
 chrome://extensions to get it.
 
+AGENT.md: hosting the board is now nine numbered steps, including the
+Vercel login wall that blocks the phone on a new project.
+
 ## 1.1.0 (2026-09-26)
 
 Drafts without an Anthropic API key. If Claude Code or Codex is installed
