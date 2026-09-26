@@ -1,6 +1,6 @@
 {
   "name": "jobsearch",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "A private job board that finds roles, scores them, drafts the brief and cover letter, and tells you where you are.",
   "type": "module",

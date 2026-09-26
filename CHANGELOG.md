@@ -7,6 +7,13 @@ bumps the last one.
 To update your copy: `git pull`, then `npm run doctor`. Run `npm install`
 only when an entry says so.
 
+## 1.1.1 (2026-09-26)
+
+The "roles ready" notice kept its titles on every page. Some sites' CSS
+reached into it and blanked the title and company. It now renders in a
+shadow root, out of the page's reach. Reload the extension on
+chrome://extensions to get it.
+
 ## 1.1.0 (2026-09-26)
 
 Drafts without an Anthropic API key. If Claude Code or Codex is installed

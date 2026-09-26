@@ -571,8 +571,8 @@ chrome.runtime.onMessage.addListener((m, sender) => {
   })();
 });
 
-// Runs in the page. Everything inline, so the page's CSS can't reach it.
-// Redrawn only when the roles change, so switching tabs doesn't replay it.
+// Runs in the page, inside a shadow root, so the page's CSS can't reach
+// it. Redrawn only when the roles change, so switching tabs doesn't replay it.
 function deskToast(roles) {
   const ID = "__jobsearch_ready";
   const sig = roles.map((r) => r.id).join(",");
@@ -583,9 +583,11 @@ function deskToast(roles) {
   const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const shown = roles.slice(0, 4);
   const more = roles.length - shown.length;
+  const host = document.createElement("div");
+  host.id = ID;
+  host.dataset.sig = sig;
+  host.setAttribute("style", "all:initial;position:fixed;top:16px;right:16px;z-index:2147483647");
   const el = document.createElement("div");
-  el.id = ID;
-  el.dataset.sig = sig;
   el.innerHTML = `
     <div data-k="head">
       <span data-k="dot"></span>
@@ -615,7 +617,7 @@ function deskToast(roles) {
 
   const S = (k, v) => el.querySelectorAll(`[data-k="${k}"]`).forEach((x) => x.setAttribute("style", v));
   const sans = "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif";
-  el.setAttribute("style", `all:initial;position:fixed;top:16px;right:16px;z-index:2147483647;box-sizing:border-box;width:348px;background:#151514;border:1px solid #2c2c29;border-radius:12px;box-shadow:0 24px 60px -18px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.18);font:12px/1.45 ${sans};color:#e8e7e3;-webkit-font-smoothing:antialiased;overflow:hidden;opacity:0;transform:translateY(-8px);transition:opacity .28s cubic-bezier(.25,1,.5,1),transform .28s cubic-bezier(.25,1,.5,1)`);
+  el.setAttribute("style", `all:initial;display:block;box-sizing:border-box;width:348px;background:#151514;border:1px solid #2c2c29;border-radius:12px;box-shadow:0 24px 60px -18px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.18);font:12px/1.45 ${sans};color:#e8e7e3;-webkit-font-smoothing:antialiased;overflow:hidden;opacity:0;transform:translateY(-8px);transition:opacity .28s cubic-bezier(.25,1,.5,1),transform .28s cubic-bezier(.25,1,.5,1)`);
   S("head", "display:flex;align-items:center;gap:8px;padding:13px 15px 10px;border-bottom:1px solid #22221f");
   S("dot", "width:7px;height:7px;border-radius:50%;background:#5aa878;flex:none");
   S("count", "font-size:13px;font-weight:500;color:#f1f0ec");
@@ -639,7 +641,8 @@ function deskToast(roles) {
   el.querySelector('[data-k="later"]').onclick = () => say("later");
   el.querySelector('[data-k="mute"]').onclick = () => say("mute");
 
-  document.documentElement.appendChild(el);
+  host.attachShadow({ mode: "open" }).appendChild(el);
+  document.documentElement.appendChild(host);
   el.getBoundingClientRect();
   el.style.opacity = "1";
   el.style.transform = "none";
