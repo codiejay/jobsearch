@@ -23,6 +23,11 @@ the log and left out. `takeableOnly` and `newMax` in the config.
 Jobgether lists roles without a description; the scan reads the offer
 page for the ones worth a brief, ten a scan.
 
+Focus: from "Did you apply?" you can go back to the brief (B), copy the
+letter again, or open the posting again. The letter on the brief has a
+Copy button, and once the posting is open the brief has "Back to the
+question" (B), so no second tab.
+
 `npm run doctor` after pulling. No new packages.
 
 ## 1.1.1 (2026-09-26)

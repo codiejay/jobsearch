@@ -31,7 +31,7 @@ export default function Focus({
 
   const [screen, setScreen] = useState<"card" | "ask">("card");
   const [openedAt, setOpenedAt] = useState(0);
-  const [toast, setToast] = useState<{ msg: string; undo: () => void } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; undo?: () => void } | null>(null);
   const [details, setDetails] = useState<Record<string, Detail | null>>({});
   const [full, setFull] = useState(false);
   const [draft, setDraft] = useState("");
@@ -60,6 +60,19 @@ export default function Focus({
     setErr("");
     setDraft(b?.letter || "");
   }, [id, b?.letter]);
+  // A new role: the posting has not been opened yet.
+  useEffect(() => setOpenedAt(0), [id]);
+
+  // The letter again, from either screen, for a form that ate the first paste.
+  async function copyLetter() {
+    if (!b?.letter) return;
+    try {
+      await navigator.clipboard.writeText(b.letter);
+      setToast({ msg: "Letter copied." });
+    } catch {
+      setToast({ msg: "Could not copy. Select the letter and copy it yourself." });
+    }
+  }
 
   // The note at the bottom goes after 6 seconds. No motion.
   useEffect(() => {
@@ -148,7 +161,9 @@ export default function Focus({
   const total = new Set(run.order).size;
   const pos = Math.min(run.i + 1, run.order.length);
 
-  // Keys: S skip, L later, Enter apply, Y / N on the question, Z undo, Esc out.
+  // Keys: S skip, L later, Enter apply, Y / N on the question, B back and
+  // forth between the brief and the question once the posting is open,
+  // Z undo, Esc out.
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
   keys.current = (e) => {
     const el = e.target as HTMLElement;
@@ -157,17 +172,19 @@ export default function Focus({
     // Enter on a focused button already clicks it
     if (k === "enter" && el.closest("button, a")) return;
     if (k === "escape") return onClose();
-    if (k === "z" && toast) return toast.undo();
+    if (k === "z" && toast?.undo) return toast.undo();
     if (done || !j || sending) return;
     if (screen === "card" && !confirming) {
       if (k === "s") decide("skipped", `Skipped ${calm(j.company)}.`);
       else if (k === "l") later();
       else if (k === "enter" && d !== null) apply();
+      else if (k === "b" && openedAt) setScreen("ask");
       else return;
     } else if (screen === "ask") {
       if (k === "y") decide("applied", `Applied to ${calm(j.company)} at ${hhmm(Date.now())}.`);
       else if (k === "n") decide("skipped", `Skipped ${calm(j.company)}.`);
       else if (k === "l") later();
+      else if (k === "b") setScreen("card");
       else return;
     } else return;
     e.preventDefault();
@@ -282,7 +299,10 @@ export default function Focus({
                     <div className="fletter">
                       <div className="flh">
                         <span>Cover letter</span>
-                        <button onClick={() => setFull((f) => !f)}>{full ? "Show less" : "Read all"}</button>
+                        <span className="flx">
+                          <button onClick={copyLetter}>Copy</button>
+                          <button onClick={() => setFull((f) => !f)}>{full ? "Show less" : "Read all"}</button>
+                        </span>
                       </div>
                       <pre className={full ? "open" : ""}>{b.letter}</pre>
                     </div>
@@ -310,6 +330,11 @@ export default function Focus({
                   Later<kbd>L</kbd>
                 </button>
                 <span className="fgrow" />
+                {openedAt > 0 && (
+                  <button className="fbtn" onClick={() => setScreen("ask")}>
+                    Back to the question<kbd>B</kbd>
+                  </button>
+                )}
                 <button className="fbtn go" onClick={apply} disabled={d === null || d === undefined}>
                   {byEmail ? "Send with your CV" : verdict === "you" || !b?.letter ? "Open posting" : "Copy letter and apply"}
                   <kbd>Enter</kbd>
@@ -343,9 +368,15 @@ export default function Focus({
                 Not yet, keep it for later<kbd>L</kbd>
               </button>
             </div>
-            <a className="fagain" href={j.url} target="_blank" rel="noreferrer">
-              Open the posting again
-            </a>
+            <div className="fagain">
+              <button onClick={() => setScreen("card")}>
+                Back to the brief<kbd>B</kbd>
+              </button>
+              {verdict === "send" && b?.letter && <button onClick={copyLetter}>Copy the letter again</button>}
+              <a href={j.url} target="_blank" rel="noreferrer">
+                Open the posting again
+              </a>
+            </div>
           </div>
         )}
 
@@ -404,9 +435,11 @@ export default function Focus({
       {toast && (
         <div className="ftoast" role="status">
           <span>{toast.msg}</span>
-          <button onClick={toast.undo}>
-            Undo<kbd>Z</kbd>
-          </button>
+          {toast.undo && (
+            <button onClick={toast.undo}>
+              Undo<kbd>Z</kbd>
+            </button>
+          )}
         </div>
       )}
 
@@ -609,6 +642,10 @@ export default function Focus({
           font-size: 11.5px;
           color: var(--muted);
         }
+        .flx {
+          display: inline-flex;
+          gap: 10px;
+        }
         .flh button {
           border: 0;
           background: none;
@@ -724,11 +761,35 @@ export default function Focus({
           gap: 8px;
           margin-top: 22px;
         }
+        /* Under the answers: the ways back. Quiet, one line, links and
+           buttons dressed the same. */
         .fagain {
-          margin-top: 16px;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 18px;
+          margin-top: 18px;
+          font-size: 12.5px;
+        }
+        .fagain a,
+        .fagain button {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0;
+          padding: 0;
+          border: 0;
+          background: none;
+          font: inherit;
           font-size: 12.5px;
           color: #a9a8a3;
+          text-decoration: underline;
           text-underline-offset: 3px;
+          cursor: pointer;
+        }
+        .fagain a:hover,
+        .fagain button:hover {
+          color: var(--text);
         }
         .fstats {
           display: grid;
