@@ -7,3 +7,5 @@ data/*
 !data/examples/
 tsconfig.tsbuildinfo
 .vercel
+# The online board and key for the extension, from .env.local. Private.
+extension/board.json

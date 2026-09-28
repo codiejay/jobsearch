@@ -24,14 +24,27 @@ async function localUp() {
   }
 }
 
-// The board and key from the options page. "auto" (the default) means this
-// machine when its board is running, otherwise the online board saved in
-// the options. The key is BOARD_KEY, only needed away from localhost,
-// sent as the x-jobsearch-key header.
+// The board and key. Taken from the options page first, then from
+// board.json next to this file (written by `jobsearch extension` from
+// BOARD_URL and BOARD_KEY in .env.local). "auto" (the default) means the
+// online board whenever one is known, and this machine's board only when
+// none is. The key is BOARD_KEY, sent as the x-jobsearch-key header.
+async function fromFile() {
+  try {
+    const r = await fetch(chrome.runtime.getURL("board.json"));
+    return r.ok ? await r.json() : {};
+  } catch {
+    return {};
+  }
+}
+
 async function board() {
-  const { board = "auto", online = "", key = "" } = await chrome.storage.local.get(["board", "online", "key"]);
-  let base = board.replace(/\/+$/, "");
-  if (!base || base === "auto") base = (await localUp()) ? LOCAL : online.replace(/\/+$/, "");
+  const saved = await chrome.storage.local.get(["board", "online", "key"]);
+  const file = await fromFile();
+  const online = (saved.online || file.online || "").replace(/\/+$/, "");
+  const key = saved.key || file.key || "";
+  let base = (saved.board || "auto").replace(/\/+$/, "");
+  if (!base || base === "auto") base = online || ((await localUp()) ? LOCAL : "");
   const headers = { "content-type": "application/json" };
   if (key && base !== LOCAL) headers["x-jobsearch-key"] = key;
   return { base, headers };
@@ -40,7 +53,7 @@ async function board() {
 // What to say when the board can't be reached at all.
 const offline = (base) =>
   !base
-    ? `The board isn't running at ${LOCAL}, and no online board is set in the options.`
+    ? `No online board is set. Run: jobsearch extension, then reload the extension.`
     : base === LOCAL
     ? `The board isn't running at ${base}. Start it with: npm run dev`
     : `Couldn't reach the board at ${base}.`;
@@ -530,13 +543,23 @@ async function checkDesk(seen = []) {
       headers,
       body: JSON.stringify({ sharing: s.sharingTabs.length > 0 || s.appSharing, holdUntil: s.holdUntil, seen }),
     });
-    if (!r.ok) return;
+    if (!r.ok) return deskFailed(`${base} answered ${r.status}`);
     const x = await r.json();
     await chrome.storage.session.set({ pending: x.roles, appSharing: x.appSharing, base });
+    chrome.action.setBadgeText({ text: "" });
+    chrome.action.setTitle({ title: "Send this page to Job search" });
   } catch {
-    return;
+    return deskFailed(offline(base));
   }
   showWhereAllowed();
+}
+
+// The check-in failed, so new roles would only reach the phone. Say so on
+// the icon, where it can be seen, instead of going quiet.
+function deskFailed(why) {
+  chrome.action.setBadgeText({ text: "!" });
+  chrome.action.setBadgeBackgroundColor({ color: "#c0504d" });
+  chrome.action.setTitle({ title: `Job search can't reach the board. ${why}` });
 }
 
 async function showWhereAllowed() {
@@ -571,7 +594,7 @@ chrome.runtime.onMessage.addListener((m, sender) => {
       if (m.share) hideEverywhere();
       else showWhereAllowed();
     } else if (m.desk === "open") {
-      const { base = LOCAL } = await chrome.storage.session.get("base");
+      const { base = (await board()).base || LOCAL } = await chrome.storage.session.get("base");
       chrome.tabs.create({ url: `${base}/` });
       await chrome.storage.session.set({ pending: [] });
       hideEverywhere();

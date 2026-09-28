@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Job search board",
-  "version": "2.2",
+  "version": "2.3",
   "description": "Send job posts to your job search board, fill application forms, and show new roles while you are at the computer.",
   "permissions": [
     "contextMenus",

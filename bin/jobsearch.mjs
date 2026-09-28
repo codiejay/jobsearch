@@ -8,6 +8,7 @@
 //   jobsearch scan [...]        one scan now; flags pass through to scan.mjs
 //   jobsearch ping --test       one test ping to the phone
 //   jobsearch sync              push cv, profile, voice and the PDF to Redis (hosted board)
+//   jobsearch extension         point the Chrome extension at BOARD_URL (hosted board)
 //   jobsearch schedule install  run the scan every hour (macOS launchd)
 //   jobsearch schedule remove
 //   jobsearch schedule status
@@ -37,7 +38,7 @@ const nextBin = path.join(ROOT, "node_modules", ".bin", "next");
 
 const commands = {
   async help() {
-    console.log(readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 13).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
+    console.log(readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 14).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
   },
 
   async init() {
@@ -154,6 +155,17 @@ const commands = {
       console.error(e.message);
       process.exitCode = 1;
     }
+  },
+
+  // Writes extension/board.json from BOARD_URL and BOARD_KEY, so the
+  // extension checks in with the hosted board whether or not this Mac's
+  // board is running. Reload the extension in chrome://extensions after.
+  async extension() {
+    const online = (process.env.BOARD_URL || "").replace(/\/+$/, "");
+    const key = process.env.BOARD_KEY || "";
+    if (!online || !key) return console.error("Set BOARD_URL and BOARD_KEY in .env.local first.");
+    writeFileSync(path.join(ROOT, "extension", "board.json"), JSON.stringify({ online, key }, null, 2) + "\n");
+    console.log(`extension/board.json points at ${online}. Reload the extension in chrome://extensions.`);
   },
 
   async schedule() {

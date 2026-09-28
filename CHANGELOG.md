@@ -7,6 +7,23 @@ bumps the last one.
 To update your copy: `git pull`, then `npm run doctor`. Run `npm install`
 only when an entry says so.
 
+## 1.3.0 (2026-09-28)
+
+The extension uses your online board by default. Before, "auto" tried
+this machine first and only fell back to the online board saved in the
+options. With the local board stopped and nothing saved there, the
+extension stopped checking in without a word, so the scan thought you
+were away and sent every new role to the phone.
+
+Now "auto" uses the online board whenever one is known, and tries
+localhost:4750 only when none is. The online board and key can come
+from the options page as before, or from a new command:
+`jobsearch extension` writes extension/board.json (gitignored) from
+BOARD_URL and BOARD_KEY in .env.local. Reload the extension after.
+
+If a check-in fails, the extension icon shows a red "!" and its tooltip
+says why.
+
 ## 1.2.0 (2026-09-26)
 
 Six more places the scan looks, all free and keyless: Jobgether, Jobicy,
