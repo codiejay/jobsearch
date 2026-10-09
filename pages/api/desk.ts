@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { authed } from "../../lib/guard";
-import { getJob, listJobs, putJobs, setPresence, type Job } from "../../lib/store";
+import { getJob, listDesk, putJobs, setPresence, type Job } from "../../lib/store";
 import { appSharing } from "../../lib/desk";
 
 /* The extension checks in here about once a minute while Chrome is open:
@@ -20,18 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await putJobs(found);
   }
 
-  const roles = (await listJobs())
-    .filter((j) => j.deskAt && !j.deskSeenAt && (j.status === "drafted" || j.status === "new") && j.brief)
-    .sort((a, b) => (b.brief.fit ?? 0) - (a.brief.fit ?? 0))
-    .map((j) => ({
-      id: j.id,
-      title: j.title,
-      company: j.company,
-      where: j.mode === "remote" ? "Remote" : j.location,
-      fit: j.brief.fit,
-      verdict: j.brief.verdict,
-      at: j.deskAt,
-    }));
+  const roles = await listDesk();
 
   // Only the machine itself can see Zoom. Hosted, this is always false.
   return res.json({ roles, appSharing: await appSharing() });

@@ -14,6 +14,8 @@ import { Redis } from "@upstash/redis";
      js:jobs     hash, field = role id, value = the role as JSON
      js:meta     hash, scannedAt
      js:presence string, what the extension last said (see Presence)
+     js:desk     hash, field = role id, value = a DeskRole: the roles
+                 waiting for a notice on screen, kept by putJobs
    One field per role, so two writers only clash on the same role.
 
    The CV, profile and voice are files in data/ on the machine that runs
@@ -35,7 +37,7 @@ export type Profile = Record<string, string | number | boolean>;
 
 export const DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DIR, "board.json");
-const K = { jobs: "js:jobs", meta: "js:meta", presence: "js:presence", cv: "js:cv", profile: "js:profile", voice: "js:voice", cvpdf: "js:cvpdf" };
+const K = { jobs: "js:jobs", meta: "js:meta", presence: "js:presence", cv: "js:cv", profile: "js:profile", voice: "js:voice", cvpdf: "js:cvpdf", desk: "js:desk" };
 
 let client: Redis | null | undefined;
 function redis(): Redis | null {
@@ -159,6 +161,10 @@ export async function putJobs(jobs: Job[]) {
   if (r) {
     for (let i = 0; i < jobs.length; i += 20)
       await r.hset(K.jobs, Object.fromEntries(jobs.slice(i, i + 20).map((j) => [j.id, JSON.stringify(j)])));
+    const on = jobs.filter(waiting);
+    const off = jobs.filter((j) => !waiting(j)).map((j) => j.id);
+    if (on.length) await r.hset(K.desk, Object.fromEntries(on.map((j) => [j.id, JSON.stringify(deskRole(j))])));
+    if (off.length) await r.hdel(K.desk, ...off);
     return;
   }
   const data = await readFile();
@@ -178,6 +184,7 @@ export async function deleteJobs(ids: string[]) {
   const r = redis();
   if (r) {
     await r.hdel(K.jobs, ...ids);
+    await r.hdel(K.desk, ...ids);
     return;
   }
   const drop = new Set(ids);
@@ -203,6 +210,44 @@ export async function saveScan(s: { scannedAt: number; jobs: Job[]; changed: Job
   await putJobs(s.changed);
   await deleteJobs(s.dropped);
   await setMeta({ scannedAt: s.scannedAt });
+}
+
+/* The desk: roles the extension should show on screen. The extension
+   asks every minute, so on Redis this reads js:desk, a few small
+   entries, not every role. Reading all ~500 roles each minute used up
+   the free Upstash plan's 10 GB a month and took the board down (5 Oct
+   2026). */
+export type DeskRole = { id: string; title: string; company: string; where: string; fit: number; verdict: string; at: number };
+
+const waiting = (j: Job) =>
+  !!(j.deskAt && !j.deskSeenAt && (j.status === "drafted" || j.status === "new") && j.brief);
+
+const deskRole = (j: Job): DeskRole => ({
+  id: j.id,
+  title: j.title,
+  company: j.company,
+  where: j.mode === "remote" ? "Remote" : j.location,
+  fit: j.brief.fit,
+  verdict: j.brief.verdict,
+  at: j.deskAt,
+});
+
+export async function listDesk(): Promise<DeskRole[]> {
+  const r = redis();
+  let roles: DeskRole[];
+  if (!r) roles = (await readFile()).jobs.filter(waiting).map(deskRole);
+  else {
+    // First call after this change: fill js:desk from the roles once.
+    if (!(await r.hget<string>(K.meta, "desk"))) {
+      const on = (await listJobs()).filter(waiting);
+      if (on.length) await r.hset(K.desk, Object.fromEntries(on.map((j) => [j.id, JSON.stringify(deskRole(j))])));
+      await r.hset(K.meta, { desk: "1" });
+    }
+    const raw = ((await r.hgetall(K.desk)) || {}) as unknown as string[] | Record<string, string>;
+    const values = Array.isArray(raw) ? raw.filter((_, i) => i % 2 === 1) : Object.values(raw);
+    roles = values.map((v) => JSON.parse(v) as DeskRole);
+  }
+  return roles.sort((a, b) => (b.fit ?? 0) - (a.fit ?? 0));
 }
 
 export async function countJobs(): Promise<number> {
