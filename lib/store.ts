@@ -1,14 +1,18 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Redis } from "@upstash/redis";
+import { firestore, firestoreConfigured } from "./firestore";
 
 /* The one place that reads and writes the board: the page, the API
    routes, the extension's routes and the scan all come through here.
 
    With JOBSEARCH_STORE=redis and Upstash keys set it uses Redis, so this
-   machine and a hosted copy share one board. Otherwise it uses the files
-   in data/. Hosted without Redis it throws: a serverless disk is thrown
-   away, so writing there would lose data quietly.
+   machine and a hosted copy share one board. JOBSEARCH_STORE=firestore
+   with FIRESTORE_KEY does the same on Firestore (lib/firestore.ts), which
+   never locks the way the free Upstash plan does after 10 GB a month.
+   Otherwise it uses the files in data/. Hosted without either it throws:
+   a serverless disk is thrown away, so writing there would lose data
+   quietly.
 
    Redis keys, all under "js:":
      js:jobs     hash, field = role id, value = the role as JSON
@@ -39,19 +43,35 @@ export const DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DIR, "board.json");
 const K = { jobs: "js:jobs", meta: "js:meta", presence: "js:presence", cv: "js:cv", profile: "js:profile", voice: "js:voice", cvpdf: "js:cvpdf", desk: "js:desk" };
 
-let client: Redis | null | undefined;
-function redis(): Redis | null {
+// The calls the store makes, which Upstash and lib/firestore.ts both answer.
+type Kv = {
+  get<T = string>(key: string): Promise<T | null>;
+  set(key: string, value: string): Promise<unknown>;
+  hget<T = string>(key: string, field: string): Promise<T | null>;
+  hgetall(key: string): Promise<Record<string, string> | null>;
+  hset(key: string, values: Record<string, string>): Promise<unknown>;
+  hdel(key: string, ...fields: string[]): Promise<unknown>;
+  hlen(key: string): Promise<number>;
+};
+
+let client: Kv | null | undefined;
+let kind: "redis" | "firestore" | "file" = "file";
+function redis(): Kv | null {
   if (client !== undefined) return client;
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  if (process.env.JOBSEARCH_STORE === "redis" && url && token) client = new Redis({ url, token, automaticDeserialization: false });
-  else if (process.env.VERCEL || process.env.JOBSEARCH_HOSTED) throw new Error("Hosted without Redis. Set JOBSEARCH_STORE=redis and the Upstash keys.");
+  const want = process.env.JOBSEARCH_STORE;
+  if (want === "firestore" && firestoreConfigured()) (client = firestore), (kind = "firestore");
+  else if (want === "redis" && url && token) (client = new Redis({ url, token, automaticDeserialization: false }) as unknown as Kv), (kind = "redis");
+  else if (process.env.VERCEL || process.env.JOBSEARCH_HOSTED)
+    throw new Error("Hosted without a shared store. Set JOBSEARCH_STORE=firestore and FIRESTORE_KEY, or JOBSEARCH_STORE=redis and the Upstash keys.");
   else client = null;
   return client;
 }
 
-export function backend(): "redis" | "file" {
-  return redis() ? "redis" : "file";
+export function backend(): "redis" | "firestore" | "file" {
+  redis();
+  return kind;
 }
 
 // ---------- file backend ----------
@@ -103,7 +123,7 @@ export async function getCvPdf(): Promise<{ name: string; bytes: Buffer } | null
    exists on disk is written; nothing is deleted. Returns what was sent. */
 export async function syncPersonToRedis(): Promise<string[]> {
   const r = redis();
-  if (!r) throw new Error("No Redis. Set JOBSEARCH_STORE=redis and the Upstash keys in .env.local.");
+  if (!r) throw new Error("No shared store. Set JOBSEARCH_STORE=firestore and FIRESTORE_KEY, or JOBSEARCH_STORE=redis and the Upstash keys, in .env.local.");
   const sent: string[] = [];
   for (const [name, key] of [["cv.txt", K.cv], ["profile.json", K.profile], ["voice.md", K.voice]] as const) {
     const text = await fs.readFile(path.join(DIR, name), "utf8").catch(() => null);

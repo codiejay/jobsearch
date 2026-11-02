@@ -112,7 +112,7 @@ const commands = {
     ok("data/voice.md is yours", existsSync(voice) && !readFileSync(voice, "utf8").includes("Ada Okafor"), "fill in data/voice.md, the letters sound like the sample in it");
     ok("data/cv.pdf", existsSync(path.join(DATA, "cv.pdf")), "needed only to send letters by email or fill a resume upload");
     console.log(`info SMTP ${process.env.SMTP_USER ? "set" : "not set (letters can't be sent from the board, copy them instead)"}`);
-    console.log(`info store ${process.env.JOBSEARCH_STORE === "redis" ? "redis" : "data/board.json"}`);
+    console.log(`info store ${["redis", "firestore"].includes(process.env.JOBSEARCH_STORE) ? process.env.JOBSEARCH_STORE : "data/board.json"}`);
     console.log(`info phone pings ${existsSync(path.join(DATA, "notify.json")) ? "topic " + JSON.parse(readFileSync(path.join(DATA, "notify.json"), "utf8")).topic : "no topic yet, run: jobsearch ping --test"}`);
     console.log(`info desk checks ${process.platform === "darwin" ? "on (macOS)" : "off (not macOS): everything goes to the phone"}`);
     try {
@@ -150,7 +150,7 @@ const commands = {
     const store = await import("../lib/store.ts");
     try {
       const sent = await store.syncPersonToRedis();
-      console.log(sent.length ? `sent to Redis: ${sent.join(", ")}` : "nothing to send: data/ is empty");
+      console.log(sent.length ? `sent to the shared store: ${sent.join(", ")}` : "nothing to send: data/ is empty");
     } catch (e) {
       console.error(e.message);
       process.exitCode = 1;

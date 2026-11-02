@@ -7,6 +7,20 @@ bumps the last one.
 To update your copy: `git pull`, then `npm run doctor`. Run `npm install`
 only when an entry says so.
 
+## 1.4.0 (2026-11-02)
+
+The board can live in Firestore. Set `JOBSEARCH_STORE=firestore` and
+`FIRESTORE_KEY` (see .env.example). Free Upstash stops answering for the
+rest of the month once 10 GB has been read, which kept this board down
+from 5 Oct to 1 Nov. Firestore bills per read instead, a few cents a
+month for one person, and never locks. Redis and the data/ file work as
+before.
+
+A scan reads the whole board twice instead of five times. The drafts and
+the phone pings use the list the scan just saved, and a notice is read
+again before the phone hears about it. That cuts what a scan reads from
+the store by more than half, on any store.
+
 ## 1.3.0 (2026-09-28)
 
 The extension uses your online board by default. Before, "auto" tried

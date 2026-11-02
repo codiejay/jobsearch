@@ -126,6 +126,13 @@ this folder.
    and the server share one board. Roles already in data/board.json are
    not carried over; the next scan fills the new store.
 
+   Free Upstash stops answering for the rest of the month after 10 GB of
+   reads. If that happens, or if they already have a Google Cloud project,
+   use Firestore instead: `JOBSEARCH_STORE=firestore`, `FIRESTORE_KEY` (a
+   service account's JSON key with the Cloud Datastore User role, base64)
+   and `FIRESTORE_DB` when the database isn't "(default)". On Vercel, add
+   those three in place of the KV ones in step 4.
+
 2. Password and key. Add to .env.local, with values they choose:
 
    ```

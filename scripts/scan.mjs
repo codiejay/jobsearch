@@ -349,8 +349,10 @@ async function main() {
   console.log(`fetched in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
   let prev = { jobs: [] };
+  let prevRead = false;
   try {
     prev = { jobs: await store.listJobs() };
+    prevRead = true;
   } catch {}
   const byId = new Map(prev.jobs.map((j) => [j.id, j]));
 
@@ -377,13 +379,16 @@ async function main() {
   // Keep two weeks, but never drop something acted on. HN threads are
   // monthly, so they get longer.
   const keep = (j) => (j.source === "HN" ? config.keepDaysHn : config.keepDays) * 864e5;
-  async function save() {
+  // Each full read of the board is ~500 roles (3 MB). Five a run used up
+  // the free Upstash plan's 10 GB a month, so a run reads it twice: at the
+  // start and before the last save. `fresh` is a read this scan just made.
+  async function save(fresh) {
     // The page and the extension write to the board too, and a scan takes
     // minutes. Take their changes first: roles added by hand, statuses set
     // and briefs written since this scan read it.
     const stored = new Map(); // id -> the role as saved, to tell what changed
     try {
-      for (const f of await store.listJobs()) {
+      for (const f of fresh || (await store.listJobs())) {
         stored.set(f.id, JSON.stringify(f));
         const j = byId.get(f.id);
         if (!j) byId.set(f.id, f);
@@ -419,9 +424,10 @@ async function main() {
       changed: jobs.filter((j) => stored.get(j.id) !== JSON.stringify(j)),
       dropped: [...stored.keys()].filter((id) => !kept.has(id)),
     });
-    return jobs.length;
+    return jobs;
   }
-  await save(); // save the new roles before the slow part
+  // save the new roles before the slow part; the board was read a moment ago
+  await save(prevRead ? prev.jobs.map((j) => ({ ...j })) : null);
 
   // Look up the posting page for LinkedIn roles worth a look. Capped and
   // spaced out so LinkedIn doesn't rate-limit the guest endpoint.
@@ -459,10 +465,10 @@ async function main() {
   }
   if (read) console.log(`read ${read} Jobgether pages`);
 
-  const kept = await save();
-  console.log(`${added} new, ${kept} kept, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  const saved = await save();
+  console.log(`${added} new, ${saved.length} kept, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
-  if (!NO_DRAFT) await draft(t0);
+  if (!NO_DRAFT) await draft(t0, saved);
 
 }
 
@@ -471,7 +477,7 @@ async function main() {
 // Writes the brief and letter for the best untouched roles, so they wait
 // under Ready to apply or Write yourself. Re-reads the role before each
 // write, because the page may have changed a status meanwhile.
-async function draft(t0) {
+async function draft(t0, board) {
   const { usd, aiSource, aiMissing } = await import("../lib/claude.ts");
   const source = aiSource();
   if (!source) return console.warn(`drafts skipped: ${aiMissing()}`);
@@ -484,7 +490,7 @@ async function draft(t0) {
     return console.warn(`drafts skipped: ${e.message}`);
   }
 
-  const todo = (await store.listJobs())
+  const todo = board
     .filter(
       (j) =>
         j.status === "new" &&
@@ -526,7 +532,7 @@ async function draft(t0) {
       console.warn(`draft failed, ${j.company}: ${e.message}`);
     }
   }
-  await alert(worth);
+  await alert(worth, board);
   console.log(`drafted ${drafted} of ${todo.length} via ${source}, $${spent.toFixed(2)}, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 }
 
@@ -540,7 +546,7 @@ async function draft(t0) {
 // away, so everything goes to the phone.
 const AWAY_S = config.awayMinutes * 60;
 const STALE_DESK = 45 * 6e4;
-async function alert(worth) {
+async function alert(worth, board) {
   const store = await import("../lib/store.ts");
   const desk = await import("../lib/desk.ts");
   const p = await store.getPresence();
@@ -553,9 +559,10 @@ async function alert(worth) {
     !(p.holdUntil > Date.now()) &&
     !(await desk.appSharing());
 
-  const stale = (await store.listJobs()).filter(
-    (j) => j.deskAt && !j.deskSeenAt && !j.phonedAt && Date.now() - j.deskAt > STALE_DESK && (j.status === "drafted" || j.status === "new")
-  );
+  // board: the roles as the scan last saved them, minutes old. Each one is
+  // read again below before anything is sent.
+  const unseen = (j) => j.deskAt && !j.deskSeenAt && !j.phonedAt && Date.now() - j.deskAt > STALE_DESK && (j.status === "drafted" || j.status === "new");
+  const stale = (board || (await store.listJobs())).filter(unseen);
   const phone = here ? [] : [...worth, ...stale];
   const onDesk = here ? worth : [];
 
@@ -563,14 +570,18 @@ async function alert(worth) {
     const x = await store.getJob(j.id);
     if (x) await store.putJob({ ...x, deskAt: Date.now() });
   }
+  const sent = [];
   for (const j of phone) {
     const x = await store.getJob(j.id);
-    if (x) await store.putJob({ ...x, phonedAt: Date.now() });
+    // a stale notice may have been opened since the board was read
+    if (!x || (!worth.includes(j) && !unseen(x))) continue;
+    await store.putJob({ ...x, phonedAt: Date.now() });
+    sent.push(j);
   }
   const why = `idle ${Math.round(idle)}s, locked ${await desk.screenLocked()}, extension ${p ? Math.round((Date.now() - p.at) / 1000) + "s ago" : "never"}, sharing ${!!p?.sharing}, muted ${p?.holdUntil > Date.now()}`;
   if (worth.length || stale.length)
     console.log(`${here ? "at the desk" : "away"} (${why}): ${onDesk.length} on screen, ${phone.length} to the phone, ${stale.length} unseen over 45 min`);
-  for (const m of runPings(phone)) await ping(m);
+  for (const m of runPings(sent)) await ping(m);
 }
 
 // Only run when called as a script; the tests and one-off checks import
