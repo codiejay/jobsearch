@@ -12,8 +12,8 @@ only when an entry says so.
 The board can live in Firestore. Set `JOBSEARCH_STORE=firestore` and
 `FIRESTORE_KEY` (see .env.example). Free Upstash stops answering for the
 rest of the month once 10 GB has been read, which kept this board down
-from 5 Oct to 1 Nov. Firestore bills per read instead, a few cents a
-month for one person, and never locks. Redis and the data/ file work as
+from 5 Oct to 1 Nov. Firestore bills per read instead, under a dollar
+a month for one person scanning hourly, and never locks. Redis and the data/ file work as
 before.
 
 A scan reads the whole board twice instead of five times. The drafts and

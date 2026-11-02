@@ -6,7 +6,7 @@ import { createSign } from "node:crypto";
 
    Why: the free Upstash plan stops answering for the rest of the month
    once 10 GB has been read (5 Oct 2026, down until 1 Nov). Firestore
-   bills per read instead, a few cents a month here, and never locks.
+   bills per read instead, under a dollar a month here, and never locks.
 
    FIRESTORE_KEY is a service account's JSON key, base64. FIRESTORE_DB is
    the database name, "(default)" when unset. A token is minted from the
